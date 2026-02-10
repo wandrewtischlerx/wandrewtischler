@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <!-- Favicon padrão -->
+    <link rel="icon" href="favicons/favicon.ico" type="image/x-icon">
+    <!-- PNGs para navegadores modernos -->
+    <link rel="icon" type="image/png" sizes="16x16" href="favicons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicons/favicon-32x32.png">
+    <!-- Apple -->
+    <link rel="apple-touch-icon" sizes="180x180" href="favicons/apple-touch-icon.png">
+    <!-- Android/Chrome -->
+    <link rel="icon" type="image/png" sizes="192x192" href="favicons/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="favicons/android-chrome-512x512.png">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-BR8LSCVTJ4"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-BR8LSCVTJ4');
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wandrew Tischler - Soluções em Marketing Digital</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto+Slab:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary-color: #0e0e0e;
+            --secondary-color: #ffffff;
+            --accent-color: #ffffff;
+            --dark-color: #0e0e0e;
+            --light-color: #ffffff;
+            --white: #ffffff;
+            --text-color: #0e0e0e;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        body {
+            background-color: var(--light-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        /* Header with modern gradient effect */
+        header {
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://i.ibb.co/DDbgR9Gn/a1-1.png') no-repeat center center/cover;
+            color: var(--white);
+            padding: 100px 0;
+            text-align: center;
+            position: relative;
+            box-shadow: var(--shadow);
+            border-bottom: 8px solid var(--primary-color);
+        }
+        .header-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5); /* Aumentado para maior contraste */
+            z-index: 1;
+        }
+        .header-content {
+            position: relative;
+            z-index: 2;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            flex-direction: column;
+        }
+        .logo-text {
+            font-family: 'Roboto Slab', serif;
+            font-size: 4rem;
+            font-weight: 600;
+            color: var(--white);
+            text-shadow: 3px 3px 5px rgba(0,0,0,0.7); /* Aumentado para maior destaque */
+            margin-right: 15px;
+        }
+        .logo {
+            max-width: 150px;
+            height: auto;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .logo-subtext {
+            font-size: 1.8rem;
+            font-weight: 300;
+            color: var(--white);
+            margin-bottom: 15px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .contact-info {
+            background-color: var(--primary-color);
+            display: inline-block;
+            padding: 10px 25px;
+            border-radius: 30px;
+            font-weight: 500;
+            box-shadow: var(--shadow);
+            margin-top: 15px;
+        }
+        /* Typing Effect */
+        .typing-text {
+            font-size: 1.5rem;
+            color: var(--white);
+            margin-top: 10px;
+            font-weight: 300;
+            min-height: 1.6em;
+        }
+        .typing-text::after {
+            content: '|';
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        .typing-text.finished::after {
+            display: none;
+        }
+        /* Lightning Animation */
+        .lightning-anim {
+            color: #ffeb3b;
+            margin-left: 8px;
+            display: inline-block;
+            animation: lightning-pulse 1.5s infinite alternate;
+            filter: drop-shadow(0 0 5px rgba(255, 235, 59, 0.7));
+        }
+        @keyframes lightning-pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { transform: scale(1.2); opacity: 1; filter: drop-shadow(0 0 15px rgba(255, 235, 59, 1)); }
+        }
+        /* Sidebar Toggle Button */
+        .sidebar-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 10;
+            transition: background-color 0.3s;
+            display: block;
+        }
+        .sidebar-toggle:hover {
+            background-color: #333;
+        }
+        /* Main Content */
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        /* Hero Section */
+        .hero {
+            position: relative;
+            height: 500px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 50px;
+            box-shadow: var(--shadow);
+        }
+        .hero-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+        .hero-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 40px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            color: var(--white);
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+        .hero-title {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+            max-width: 90%;
+            line-height: 1.3;
+        }
+        .hero-text {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            max-width: 600px;
+        }
+        .btn {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: var(--white);
+            padding: 12px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: var(--shadow);
+            border: 2px solid transparent;
+        }
+        .btn:hover {
+            background-color: transparent;
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            transform: translateY(-3px);
+        }
+        /* Sections */
+        .section {
+            margin-bottom: 60px;
+        }
+        .section-title {
+            font-family: 'Roboto Slab', serif;
+            font-size: 2.2rem;
+            color: var(--dark-color);
+            margin-bottom: 30px;
+            position: relative;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background-color: var(--primary-color);
+            border-radius: 2px;
+        }
+        /* Services */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 30px;
+        }
+        .service-card {
+            background-color: var(--white);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+        .service-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+        .service-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: var(--primary-color);
+            color: var(--white);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 2;
+        }
+        .service-image {
+            height: 200px;
+            width: 100%;
+            object-fit: cover;
+        }
+        .service-info {
+            padding: 20px;
+        }
+        .service-name {
+            font-size: 1.3rem;
+            color: var(--dark-color);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .service-description {
+            color: var(--text-color);
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+        /* About Section */
+        .about-content {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+        .about-image {
+            flex: 1;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        .about-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .about-text {
+            flex: 1;
+        }
+        .about-text p {
+            margin-bottom: 15px;
+            line-height: 1.7;
+        }
+        /* Hours Section */
+        .hours-container {
+            background-color: var(--white);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .hours-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .hours-table tr {
+            border-bottom: 1px solid #eee;
+        }
+        .hours-table tr:last-child {
+            border-bottom: none;
+        }
+        .hours-table td {
+            padding: 15px;
+            font-size: 1.1rem;
+        }
+        .hours-table td:first-child {
+            font-weight: 500;
+        }
+        .hours-table td:last-child {
+            text-align: right;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        /* Location Section */
+        .location-container {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+        .location-info {
+            flex: 1;
+        }
+        .location-info p {
+            margin-bottom: 15px;
+            line-height: 1.7;
+        }
+        .location-map {
+            flex: 1;
+            height: 400px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        .location-map iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        /* Map Section */
+        .map-container {
+            background-color: var(--white);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            margin-bottom: 40px;
+        }
+        .map-miniature {
+            width: 100%;
+            height: 400px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        .marker-icon {
+            background: #0e0e0e;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            border: 2px solid white;
+        }
+        /* Testimonials */
+        .testimonials {
+            background-color: var(--dark-color);
+            padding: 60px 0;
+            color: var(--white);
+        }
+        .testimonials-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .testimonials-title {
+            text-align: center;
+            margin-bottom: 40px;
+            font-family: 'Roboto Slab', serif;
+            font-size: 2.2rem;
+            color: var(--primary-color);
+        }
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        .testimonial-card {
+            background-color: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 10px;
+            position: relative;
+        }
+        .testimonial-card::before {
+            content: '"';
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 4rem;
+            color: rgba(255,255,255,0.1);
+            font-family: serif;
+            line-height: 1;
+        }
+        .testimonial-text {
+            font-style: italic;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        .testimonial-author {
+            font-weight: 600;
+            color: var(--white);
+        }
+        /* WhatsApp Button */
+        .whatsapp-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: #25D366;
+            color: var(--white);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        .whatsapp-btn:hover {
+            background-color: #128C7E;
+            transform: scale(1.1);
+        }
+        /* Footer */
+        footer {
+            background-color: var(--dark-color);
+            color: var(--white);
+            padding: 60px 0 30px;
+        }
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            padding: 0 20px;
+        }
+        .footer-logo {
+            font-family: 'Roboto Slab', serif;
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+        .footer-about p {
+            margin-bottom: 20px;
+            line-height: 1.7;
+        }
+        .footer-social {
+            display: flex;
+            gap: 15px;
+        }
+        .footer-social a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            color: var(--white);
+            transition: all 0.3s;
+        }
+        .footer-social a:hover {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            transform: translateY(-3px);
+        }
+        .footer-title {
+            font-family: 'Roboto Slab', serif;
+            font-size: 1.3rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+        .footer-links li {
+            margin-bottom: 10px;
+            list-style: none;
+        }
+        .footer-links a {
+            color: var(--white);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .footer-links a:hover {
+            color: var(--primary-color);
+        }
+        .footer-contact p {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .footer-contact i {
+            color: var(--primary-color);
+            width: 20px;
+            text-align: center;
+        }
+        .copyright {
+            text-align: center;
+            padding-top: 30px;
+            margin-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        /* Mobile Menu */
+        .mobile-menu {
+            position: fixed;
+            top: 0;
+            left: -100%;
+            width: 80%;
+            max-width: 300px;
+            height: 100vh;
+            background-color: var(--dark-color);
+            z-index: 1000;
+            transition: left 0.3s;
+            padding: 30px 20px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+        }
+        .mobile-menu.active {
+            left: 0;
+        }
+        .mobile-menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .mobile-menu-logo {
+            font-family: 'Roboto Slab', serif;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+        .mobile-menu-close {
+            background: none;
+            border: none;
+            color: var(--white);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .mobile-nav {
+            list-style: none;
+        }
+        .mobile-nav li {
+            margin-bottom: 15px;
+        }
+        .mobile-nav a {
+            color: var(--white);
+            text-decoration: none;
+            font-size: 1.1rem;
+            display: block;
+            padding: 10px;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        .mobile-nav a:hover {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+        }
+        .mobile-menu-footer {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            right: 20px;
+        }
+        .mobile-social {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        .mobile-social a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            color: var(--white);
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        /* Responsive Styles */
+        @media (max-width: 992px) {
+            .logo-text {
+                font-size: 1.5rem;
+            }
+            .logo {
+                max-width: 120px;
+            }
+            .logo-subtext {
+                font-size: 1.5rem;
+            }
+            .about-content, .location-container {
+                flex-direction: column;
+            }
+            .about-image, .location-info, .location-map {
+                width: 100%;
+            }
+        }
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+            .mobile-menu-btn, .nav-logo {
+                display: block;
+            }
+            .hero {
+                height: 440px;
+            }
+            .hero-content {
+                padding: 30px;
+                padding-bottom: 35px;
+            }
+            .hero-title {
+                font-size: 2rem;
+            }
+            .section-title {
+                font-size: 1.8rem;
+            }
+            .testimonials-title {
+                font-size: 1.8rem;
+            }
+        }
+        @media (max-width: 576px) {
+            .logo-text {
+                font-size: 2.8rem;
+                margin-right: 0;
+                line-height: 1.2;
+            }
+            .typing-text {
+                font-size: 1.1rem;
+            }
+            .logo {
+                max-width: 100px;
+            }
+            .logo-subtext {
+                font-size: 1.2rem;
+            }
+            .contact-info {
+                font-size: 0.9rem;
+                padding: 8px 15px;
+            }
+            .hero {
+                height: 420px;
+                overflow: visible;
+            }
+            .hero-content {
+                padding: 30px;
+                top: 50%;
+                bottom: auto;
+                transform: translateY(-50%);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+            .hero-title {
+                font-size: 1.7rem;
+                white-space: normal;
+                max-width: 100%;
+                line-height: 1.3;
+            }
+            .hero-text {
+                font-size: 1rem;
+            }
+            .btn {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+            .section {
+                margin-bottom: 40px;
+            }
+            .hours-table td {
+                padding: 10px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <div class="mobile-menu-logo">Wandrew Tischler</div>
+            <button class="mobile-menu-close" id="mobileMenuClose">×</button>
+        </div>
+        <ul class="mobile-nav">
+            <li><a href="#home">Início</a></li>
+            <li><a href="#about">Sobre Nós</a></li>
+            <li><a href="#services">Serviços</a></li>
+            <li><a href="#map-section">Mapa</a></li>
+        </ul>
+        <div class="mobile-menu-footer">
+            <div class="mobile-social">
+                <a href="https://facebook.com/wandrewtischler"><i class="fab fa-facebook-f"></i></a>
+                <a href="https://instagram.com/wandrewtischler"><i class="fab fa-instagram"></i></a>
+                <a href="https://x.com/wandrewtischler"><i class="fab fa-x-twitter"></i></a>
+                <a href="https://pinterest.com/wandrewtischler"><i class="fab fa-pinterest-p"></i></a>
+                <a href="https://youtube.com/@wandrewtischler"><i class="fab fa-youtube"></i></a>
+                <a href="https://wa.me/5527996316212"><i class="fab fa-whatsapp"></i></a>
+                <a href="https://tiktok.com/@wandrewtischler"><i class="fab fa-tiktok"></i></a>
+            </div>
+        </div>
+    </div>
+    <div class="overlay" id="overlay"></div>
+    <!-- WhatsApp Button -->
+    <a href="https://wa.me/5527996316212?text=Como%20fa%C3%A7o%20para%20contratar%3F" class="whatsapp-btn" target="_blank">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+    <!-- Header -->
+    <header id="home">
+        <div class="header-overlay"></div>
+        <button class="sidebar-toggle" id="mobileMenuBtn">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="header-content">
+            <span class="logo-text">Wandrew Tischler</span>
+            <p class="typing-text"></p>
+        </div>
+    </header>
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <img src="https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Wandrew Tischler" class="hero-image">
+            <div class="hero-content">
+                <h2 class="hero-title">Transforme sua marca com marketing estratégico</h2>
+                <p class="hero-text">Ofereço soluções completas em marketing digital, desde criação de sites até estratégias personalizadas para influenciadores e empresas.</p>
+                <a href="#services" class="btn">Conheça nossos serviços</a>
+            </div>
+        </section>
+        <!-- Services Section -->
+        <section id="services" class="section">
+            <h2 class="section-title">Nossos Serviços</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-badge">Destaque</div>
+                    <img src="https://images.unsplash.com/photo-1545239351-ef35f43d514b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Criação de Sites" class="service-image">
+                    <div class="service-info">
+                        <h3 class="service-name">Criação de Sites</h3>
+                        <p class="service-description">Desenvolvo websites modernos, responsivos e otimizados para SEO, garantindo uma presença online profissional para sua marca.</p>
+                    </div>
+                </div>
+                <div class="service-card">
+                    <img src="https://fia.com.br/wp-content/uploads/2022/06/consultoria-fia-o-que-e-diferentes-tipos-como-contratar.jpg" alt="Consultoria" class="service-image">
+                    <div class="service-info">
+                        <h3 class="service-name">Consultoria Empresarial</h3>
+                        <p class="service-description">Ofereço consultoria especializada para pequenas e médias empresas, com estratégias personalizadas para crescimento e posicionamento de mercado.</p>
+                    </div>
+                </div>
+                <div class="service-card">
+                    <div class="service-badge">Novidade</div>
+                    <img src="https://daniellychavesblog.wordpress.com/wp-content/uploads/2021/02/digital-influencer.jpg" alt="Personalidades Digitais" class="service-image">
+                    <div class="service-info">
+                        <h3 class="service-name">Personalidades Digitais</h3>
+                        <p class="service-description">Ofereço gestão de carreira e estratégias de posicionamento para influenciadores emergentes, maximizando alcance e oportunidades.</p>
+                    </div>
+                </div>
+                <div class="service-card">
+                    <div class="service-badge">Novo</div>
+                    <img src="https://estaticos.animaeducacao.com.br/article/9cdce7a4-c854-466f-b10e-8d4e2685bcb3/2.jpg" alt="Design Gráfico" class="service-image">
+                    <div class="service-info">
+                        <h3 class="service-name">Design Gráfico</h3>
+                        <p class="service-description">Crio identidades visuais, logotipos, banners e materiais promocionais que refletem a essência da sua marca com criatividade e profissionalismo.</p>
+                    </div>
+                </div>
+                <div class="service-card">
+                    <img src="https://www.compartilhapublicidade.com.br/wp-content/uploads/2021/07/o-que-e-gestao-de-trafego.png" alt="Gestão de Anúncios" class="service-image">
+                    <div class="service-info">
+                        <h3 class="service-name">Gestão de Anúncios</h3>
+                        <p class="service-description">Planejo e executo campanhas publicitárias online, otimizadas para plataformas como Google Ads e redes sociais, maximizando retorno sobre investimento.</p>
+                    </div>
+                </div>
+                <div class="service-card">
+                    <div class="service-badge">Destaque</div>
+                    <img src="https://t2.tudocdn.net/603541?w=1920&h=1080" alt="Negócio no Google Maps" class="service-image">
+                    <div class="service-info">
+                        <h3 class="service-name">Negócio no Google Maps</h3>
+                        <p class="service-description">Registro e otimização do seu negócio no Google Maps, aumentando visibilidade local e atraindo mais clientes para sua empresa.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- About Section -->
+        <section id="about" class="section">
+            <h2 class="section-title">Sobre Nós</h2>
+            <div class="about-content">
+                <div class="about-image">
+                    <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Wandrew Tischler">
+                </div>
+                <div class="about-text">
+                    <p>Eu, Wandrew Tischler, iniciei minha jornada em 2020 com a missão de transformar marcas por meio de estratégias de marketing digital inovadoras. Sou especializado em ajudar pequenas e médias empresas, além de influenciadores, a alcançarem seu potencial máximo no ambiente online.</p>
+                    <p>Combino criatividade, tecnologia e análise de dados para criar soluções personalizadas que geram resultados reais. Desde a criação de sites até a gestão de carreiras digitais, estou comprometido com o sucesso dos meus clientes.</p>
+                    <p>Com uma abordagem focada no cliente, trabalho para entender suas necessidades e entregar projetos que superem expectativas. Minha paixão é ver marcas crescerem e se destacarem no mercado digital.</p>
+                    <p>Entre em contato e descubra como posso ajudar a sua marca a brilhar!</p>
+                </div>
+            </div>
+        </section>
+        <!-- Map Section -->
+        <section id="map-section" class="section">
+            <h2 class="section-title">Mapa de Empresas</h2>
+            <div class="map-container">
+                <div id="map" class="map-miniature"></div>
+                <a href="mapa.html" class="btn" style="display: block; margin: 20px auto; text-align: center;">Abrir Mapa</a>
+            </div>
+        </section>
+    </div>
+    <!-- Testimonials Section -->
+    <section class="testimonials">
+        <div class="testimonials-container">
+            <h2 class="testimonials-title">O que nossos clientes dizem</h2>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <p class="testimonial-text">Wandrew Tischler transformou a presença online da minha empresa com um site incrível e estratégias de marketing eficazes. Recomendo!</p>
+                    <p class="testimonial-author">- Marcelo Costa</p>
+                </div>
+                <div class="testimonial-card">
+                    <p class="testimonial-text">A consultoria dele foi essencial para o crescimento do meu negócio. Profissional competente e dedicado!</p>
+                    <p class="testimonial-author">- Fernanda Lima</p>
+                </div>
+                <div class="testimonial-card">
+                    <p class="testimonial-text">Como influenciador, a gestão de carreira de Wandrew Tischler me ajudou a alcançar novos públicos e parcerias. Excelente trabalho!</p>
+                    <p class="testimonial-author">- Lucas Almeida</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-about">
+                <a href="#" class="footer-logo">Wandrew Tischler</a>
+                <p>Ofereço soluções completas em marketing digital para empresas e influenciadores. Desde 2020 ajudando marcas a se destacarem no mercado digital.</p>
+                <div class="footer-social">
+                    <a href="https://facebook.com/wandrewtischler"><i class="fab fa-facebook-f"></i></a>
+                    <a href="https://instagram.com/wandrewtischler"><i class="fab fa-instagram"></i></a>
+                    <a href="https://x.com/wandrewtischler"><i class="fab fa-x-twitter"></i></a>
+                    <a href="https://pinterest.com/wandrewtischler"><i class="fab fa-pinterest-p"></i></a>
+                    <a href="https://youtube.com/@wandrewtischler"><i class="fab fa-youtube"></i></a>
+                    <a href="https://wa.me/5527996316212"><i class="fab fa-whatsapp"></i></a>
+                    <a href="https://tiktok.com/@wandrewtischler"><i class="fab fa-tiktok"></i></a>
+                </div>
+            </div>
+            <div class="footer-links">
+                <h3 class="footer-title">Links Rápidos</h3>
+                <ul>
+                    <li><a href="#home">Início</a></li>
+                    <li><a href="#about">Sobre Nós</a></li>
+                    <li><a href="#services">Serviços</a></li>
+                    <li><a href="#map-section">Mapa</a></li>
+                </ul>
+            </div>
+            <div class="footer-contact">
+                <h3 class="footer-title">Contato</h3>
+                <p><i class="fas fa-map-marker-alt"></i> Ladeira Dr. Gérson da Silva Freire, 203, Guarapari - ES, CEP 29201-070</p>
+                <p><i class="fas fa-phone"></i> (27) 99631-6212</p>
+                <p><i class="fas fa-envelope"></i> contato@guarabusiness.com.br</p>
+            </div>
+        </div>
+        <div class="copyright">
+            <p>© <span id="current-year"></span> Wandrew Tischler. Todos os direitos reservados.</p>
+            Desenvolvido por Wandrew Tischler
+        </div>
+    </footer>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Mobile Menu Toggle
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenuClose = document.getElementById('mobileMenuClose');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const overlay = document.getElementById('overlay');
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.add('active');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        mobileMenuClose.addEventListener('click', () => {
+            mobileMenu.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+        overlay.addEventListener('click', () => {
+            mobileMenu.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        // Set current year in footer
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+        // Animation on scroll
+        const animateOnScroll = () => {
+            const elements = document.querySelectorAll('.section, .service-card, .testimonial-card');
+            elements.forEach(element => {
+                const elementPosition = element.getBoundingClientRect().top;
+                const windowHeight = window.innerHeight;
+                if (elementPosition < windowHeight - 100) {
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateY(0)';
+                }
+            });
+        };
+        // Initialize elements with opacity 0 and slight offset
+        document.querySelectorAll('.section, .service-card, .testimonial-card').forEach(element => {
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(30px)';
+            element.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        });
+        window.addEventListener('scroll', animateOnScroll);
+        window.addEventListener('load', animateOnScroll);
+        // Map functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configuração do Firebase
+            const firebaseConfig = {
+                apiKey: "AIzaSyDNNdK59HRMUrbhMgFJQMwBOsULf5BqRBU",
+                authDomain: "guarabusiness-clientes.firebaseapp.com",
+                projectId: "guarabusiness-clientes",
+                storageBucket: "guarabusiness-clientes.firebasestorage.app",
+                messagingSenderId: "264542446804",
+                appId: "1:264542446804:web:7410dbb92cecbeb2fb4741",
+                measurementId: "G-MKKQFBVG30"
+            };
+            // Inicializa o Firebase
+            const app = firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            // Inicializa o mapa
+            const map = L.map('map').setView([-20.6543, -40.4975], 14); // Coordenadas de Guarapari
+            // Camada de mapa (rua por padrão)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            // Variáveis
+            let markers = {};
+            let unsubscribeEmpresas;
+            // Função para verificar status da empresa
+            function getEmpresaStatus(empresa) {
+                if (empresa.status === 'construction') {
+                    return { status: 'construction', text: 'EM CONSTRUÇÃO' };
+                }
+                if (!empresa.horarioInicio || !empresa.horarioFim) return null;
+                const now = new Date();
+                const currentTime = now.getHours() * 60 + now.getMinutes();
+                const [startH, startM] = empresa.horarioInicio.split(':').map(Number);
+                const [endH, endM] = empresa.horarioFim.split(':').map(Number);
+                const startTime = startH * 60 + startM;
+                const endTime = endH * 60 + endM;
+                if (endTime <= startTime) {
+                    return { 
+                        status: (currentTime >= startTime || currentTime <= endTime) ? 'open' : 'closed',
+                        text: (currentTime >= startTime || currentTime <= endTime) ? 'ABERTO' : 'FECHADO'
+                    };
+                }
+                return { 
+                    status: (currentTime >= startTime && currentTime <= endTime) ? 'open' : 'closed',
+                    text: (currentTime >= startTime && currentTime <= endTime) ? 'ABERTO' : 'FECHADO'
+                };
+            }
+            // Função para obter nome da categoria
+            function getCategoryName(categoryKey) {
+                const categories = {
+                    'restaurante': 'Restaurante',
+                    'padaria': 'Padaria',
+                    'oficina-mecanica': 'Oficina Mecânica',
+                    'oficina-pintura': 'Oficina de Pintura',
+                    'salao': 'Salão de Beleza',
+                    'barbearia': 'Barbearia',
+                    'mercado': 'Mercado',
+                    'farmacia': 'Farmácia',
+                    'lanchonete': 'Lanchonete',
+                    'pizzaria': 'Pizzaria',
+                    'hamburgueria': 'Hamburgueria',
+                    'bar': 'Bar',
+                    'lava-jato': 'Lava Jato',
+                    'distribuidora': 'Distribuidora',
+                    'outros': 'Outros'
+                };
+                return categories[categoryKey] || categoryKey;
+            }
+            // Função para formatar telefone
+            function formatPhone(phone) {
+                const cleaned = ('' + phone).replace(/\D/g, '');
+                const match = cleaned.match(/^(\d{2})(\d{4,5})(\d{4})$/);
+                if (match) return '(' + match[1] + ') ' + match[2] + '-' + match[3];
+                return phone;
+            }
+            // Carrega e atualiza empresas em tempo real
+            unsubscribeEmpresas = db.collection("empresas").onSnapshot(snapshot => {
+                // Limpa marcadores existentes
+                Object.values(markers).forEach(marker => map.removeLayer(marker));
+                markers = {};
+                const empresas = [];
+                const bounds = L.latLngBounds();
+                snapshot.forEach(doc => {
+                    const empresa = { id: doc.id, ...doc.data() };
+                    empresas.push(empresa);
+                    // Adiciona marcador
+                    const statusInfo = getEmpresaStatus(empresa);
+                    const markerClass = statusInfo && statusInfo.status === 'construction' ? 'construction' : '';
+                    const marker = L.marker([empresa.lat, empresa.lng], {
+                        title: empresa.nome,
+                        icon: L.divIcon({
+                            className: 'custom-marker',
+                            html: `<div class="marker-icon ${markerClass}">${empresa.nome.charAt(0)}</div>`,
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 12]
+                        })
+                    }).addTo(map);
+                    // Conteúdo do popup
+                    const statusText = statusInfo ? 
+                        `<p><strong>Status:</strong> <span style="color: ${statusInfo.status === 'open' ? '#28a745' : statusInfo.status === 'closed' ? '#dc3545' : '#ffc107'};">${statusInfo.text}</span></p>` : '';
+                    const horarioText = empresa.horarioInicio && empresa.horarioFim && empresa.status !== 'construction' ? 
+                        `<p><strong>Horário:</strong> ${empresa.horarioInicio} - ${empresa.horarioFim}</p>` : '';
+                    const whatsappBtn = empresa.whatsapp ? 
+                        `<a href="https://wa.me/55${empresa.whatsapp.replace(/\D/g, '')}" target="_blank" style="background: #25D366; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; text-decoration: none; display: inline-block;"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : '';
+                    const popupContent = `
+                        <h3>${empresa.nome}</h3>
+                        ${empresa.categoria ? `<p><strong>Categoria:</strong> ${getCategoryName(empresa.categoria)}</p>` : ''}
+                        <p><strong>Endereço:</strong> ${empresa.endereco}</p>
+                        ${statusText}
+                        ${horarioText}
+                        ${empresa.telefone ? `<p><strong>Telefone:</strong> ${formatPhone(empresa.telefone)}</p>` : ''}
+                        ${empresa.site ? `<a href="${empresa.site}" target="_blank" style="background: #0e0e0e; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; text-decoration: none; display: inline-block;">Visitar Site</a>` : ''}
+                        ${whatsappBtn}
+                    `;
+                    marker.bindPopup(popupContent);
+                    markers[empresa.id] = marker;
+                    // Adiciona ao bounds
+                    bounds.extend([empresa.lat, empresa.lng]);
+                });
+                // Ajusta o zoom para encaixar todos os pontos
+                if (empresas.length > 0) {
+                    map.fitBounds(bounds, { padding: [20, 20] });
+                }
+            }, error => {
+                console.error("Erro ao carregar empresas:", error);
+            });
+        });
+
+        // Typing effect script
+        document.addEventListener('DOMContentLoaded', function() {
+            const text = "Melhorando negócios com tecnologia.";
+            const typingElement = document.querySelector('.typing-text');
+            let index = 0;
+            const chars = [...text]; // Spread syntax to handle emoji correctly
+
+            function typeWriter() {
+                if (index < chars.length) {
+                    typingElement.textContent += chars[index];
+                    index++;
+                    setTimeout(typeWriter, 50);
+                } else {
+                    typingElement.classList.add('finished');
+                    typingElement.innerHTML += '<i class="fas fa-bolt lightning-anim"></i>';
+                }
+            }
+            
+            setTimeout(typeWriter, 1000); // Start after 1 second
+        });
+    </script>
+</body>
+</html>
