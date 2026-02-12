@@ -1,0 +1,2462 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+
+    <!-- Favicon padrão -->
+    <link rel="icon" href="favicons/favicon.ico" type="image/x-icon">
+
+    <!-- PNGs para navegadores modernos -->
+    <link rel="icon" type="image/png" sizes="16x16" href="favicons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicons/favicon-32x32.png">
+
+    <!-- Apple -->
+    <link rel="apple-touch-icon" sizes="180x180" href="favicons/apple-touch-icon.png">
+
+    <!-- Android/Chrome -->
+    <link rel="icon" type="image/png" sizes="192x192" href="favicons/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="favicons/android-chrome-512x512.png">
+
+
+
+
+
+  <title>Mapa de Clientes - Wandrew Tischler</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Font Awesome para ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+  <style>
+    :root {
+      --primary-color: #0e0e0e;
+      --secondary-color: #ffffff;
+      --light-color: #ffffff;
+      --border-color: #e0e0e0;
+      --shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+      --success-color: #28a745;
+      --danger-color: #dc3545;
+      --warning-color: #ffc107;
+      --info-color: #17a2b8;
+      --radius: 8px;
+      --transition: all 0.3s ease;
+      /* Dark mode variables */
+      --bg-color: #ffffff;
+      --text-color: #0e0e0e;
+      --header-bg: #ffffff;
+      --sidebar-bg: #ffffff;
+      --modal-bg: #ffffff;
+      --modal-footer-bg: #f8f9fa;
+      --category-bg: #f0f2f5;
+      --cliente-bg: #ffffff;
+    }
+ 
+    [data-theme="dark"] {
+      --bg-color: #1a1a1a;
+      --text-color: #e0e0e0;
+      --header-bg: #2c2c2c;
+      --sidebar-bg: #2c2c2c;
+      --modal-bg: #2c2c2c;
+      --modal-footer-bg: #3a3a3a;
+      --border-color: #444;
+      --category-bg: #3a3a3a;
+      --cliente-bg: #3a3a3a;
+      --shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+    }
+ 
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+ 
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      color: var(--text-color);
+      background-color: var(--bg-color);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow-x: hidden;
+    }
+ 
+    #header {
+      background: var(--header-bg);
+      color: var(--text-color);
+      padding: 0.75rem 1rem;
+      box-shadow: var(--shadow);
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+ 
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+ 
+    #header h1 {
+      font-size: 1.5rem;
+      margin: 0;
+      font-weight: 700;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+ 
+    #header h1 i {
+      color: var(--text-color);
+    }
+ 
+    #auth-section {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+ 
+    #auth-section.admin {
+      color: var(--success-color);
+    }
+ 
+    #auth-section button {
+      padding: 0.5rem 0.75rem;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.85rem;
+      transition: var(--transition);
+      touch-action: manipulation;
+    }
+ 
+    #login-btn {
+      background: var(--primary-color);
+      color: white;
+    }
+ 
+    #login-btn:hover {
+      background: #c7361e;
+      transform: translateY(-1px);
+    }
+ 
+    #logout-btn {
+      background: var(--danger-color);
+      color: white;
+    }
+ 
+    #logout-btn:hover {
+      background: #c82333;
+      transform: translateY(-1px);
+    }
+ 
+    #download-backup-btn {
+      background: var(--info-color);
+      color: white;
+    }
+ 
+    #download-backup-btn:hover {
+      background: #138496;
+      transform: translateY(-1px);
+    }
+ 
+    #dark-mode-toggle {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 0.5rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      touch-action: manipulation;
+    }
+ 
+    #dark-mode-toggle:hover {
+      background: #c7361e;
+      transform: translateY(-1px);
+    }
+ 
+    #main-container {
+      display: flex;
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      padding-top: 60px; /* Adjusted for fixed header */
+    }
+ 
+    #sidebar {
+      width: 100%;
+      max-width: 380px;
+      background: var(--sidebar-bg);
+      padding: 0;
+      overflow-y: auto;
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      transition: var(--transition);
+      z-index: 1001;
+      position: fixed;
+      top: 60px;
+      bottom: 0;
+      left: -100%;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    }
+ 
+    #sidebar.active {
+      left: 0;
+    }
+ 
+    #map-container {
+      flex: 1;
+      position: relative;
+      margin-left: 0;
+      transition: var(--transition);
+    }
+ 
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+ 
+    .sidebar-header {
+      padding: 1rem;
+      background: var(--sidebar-bg);
+      color: var(--text-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+ 
+    .sidebar-header h2 {
+      font-size: 1.1rem;
+      margin: 0;
+      font-weight: 600;
+    }
+ 
+    .sidebar-tools {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--sidebar-bg);
+      position: sticky;
+      top: 60px;
+      z-index: 10;
+    }
+ 
+    .search-container {
+      position: relative;
+      margin-bottom: 0.75rem;
+    }
+ 
+    #search {
+      width: 100%;
+      padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      transition: var(--transition);
+      background: var(--sidebar-bg);
+      color: var(--text-color);
+    }
+ 
+    #search:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(217, 65, 37, 0.1);
+    }
+ 
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #777;
+    }
+ 
+    .categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+ 
+    .category-btn {
+      padding: 0.5rem 0.75rem;
+      background: var(--category-bg);
+      border: none;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: var(--transition);
+      color: var(--text-color);
+      touch-action: manipulation;
+    }
+ 
+    .category-btn:hover, .category-btn.active {
+      background: var(--primary-color);
+      color: white;
+    }
+ 
+    #clientes-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+ 
+    .cliente-item {
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      background: var(--cliente-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: var(--transition);
+      border-left: 4px solid var(--primary-color);
+    }
+ 
+    .cliente-item:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+ 
+    .cliente-item h3 {
+      margin: 0 0 0.5rem;
+      color: var(--text-color);
+      font-size: 1rem;
+      font-weight: 600;
+    }
+ 
+    .cliente-item p {
+      margin: 0.25rem 0;
+      font-size: 0.85rem;
+      color: #666;
+    }
+ 
+    .cliente-item .category {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      background: var(--category-bg);
+      border-radius: 4px;
+      font-size: 0.75rem;
+      color: var(--text-color);
+      margin-top: 0.5rem;
+    }
+ 
+    .cliente-item a:not(.whatsapp-btn) {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-size: 0.85rem;
+      display: inline-block;
+      margin-top: 0.5rem;
+      font-weight: 500;
+    }
+ 
+    .cliente-item a:not(.whatsapp-btn):hover {
+      text-decoration: underline;
+    }
+ 
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+      overflow-y: auto;
+    }
+ 
+    .modal-content {
+      background: var(--modal-bg);
+      width: 90%;
+      max-width: 500px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transform: translateY(20px);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+ 
+    .modal.show .modal-content {
+      transform: translateY(0);
+      opacity: 1;
+    }
+ 
+    .modal-header {
+      padding: 1rem;
+      background: var(--secondary-color);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+ 
+    .modal-header h2 {
+      font-size: 1.2rem;
+      margin: 0;
+      font-weight: 600;
+    }
+ 
+    .close-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: var(--transition);
+      padding: 0.25rem;
+      touch-action: manipulation;
+    }
+ 
+    .close-btn:hover {
+      opacity: 0.8;
+    }
+ 
+    .modal-body {
+      padding: 1rem;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+ 
+    .form-group {
+      margin-bottom: 1rem;
+    }
+ 
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--text-color);
+      font-size: 0.9rem;
+    }
+ 
+    .form-control {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      transition: var(--transition);
+      background: var(--modal-bg);
+      color: var(--text-color);
+    }
+ 
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(217, 65, 37, 0.1);
+    }
+ 
+    .select-control {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      background: var(--modal-bg);
+      color: var(--text-color);
+      cursor: pointer;
+    }
+ 
+    .select-control:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(217, 65, 37, 0.1);
+    }
+ 
+    .modal-footer {
+      padding: 1rem;
+      background: var(--modal-footer-bg);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      border-top: 1px solid var(--border-color);
+    }
+ 
+    .btn {
+      padding: 0.75rem 1rem;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: var(--transition);
+      font-weight: 500;
+      font-size: 0.9rem;
+      touch-action: manipulation;
+    }
+ 
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+ 
+    .btn:active {
+      transform: translateY(0);
+    }
+ 
+    .btn-primary {
+      background: var(--primary-color);
+      color: white;
+    }
+ 
+    .btn-primary:hover {
+      background: #c7361e;
+      box-shadow: 0 2px 10px rgba(217, 65, 37, 0.3);
+    }
+ 
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+ 
+    .btn-secondary:hover {
+      background: #5a6268;
+      box-shadow: 0 2px 10px rgba(108, 117, 125, 0.3);
+    }
+ 
+    .btn-danger {
+      background: var(--danger-color);
+      color: white;
+    }
+ 
+    .btn-danger:hover {
+      background: #c82333;
+      box-shadow: 0 2px 10px rgba(220, 53, 69, 0.3);
+    }
+ 
+    /* Estilo específico para o link "Visitar Site" no popup do mapa */
+    .leaflet-popup-content .btn.btn-primary {
+      color: white !important;
+    }
+ 
+    /* Botão flutuante */
+    .floating-btn {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      font-size: 1.25rem;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      transition: var(--transition);
+      touch-action: manipulation;
+    }
+ 
+    .floating-btn:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 8px 25px rgba(217, 65, 37, 0.4);
+    }
+ 
+    /* Ícones nos marcadores */
+    .marker-icon {
+      background: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+      background: var(--primary-color);
+      color: white;
+      border: 2px solid var(--header-bg);
+    }
+ 
+    /* Login modal */
+    #login-modal .modal-content {
+      max-width: 400px;
+    }
+ 
+    .login-message {
+      margin-bottom: 1rem;
+      color: #666;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+ 
+    [data-theme="dark"] .login-message {
+      color: #aaa;
+    }
+ 
+    /* Mensagem quando não há clientes */
+    .empty-message {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: #777;
+    }
+ 
+    [data-theme="dark"] .empty-message {
+      color: #aaa;
+    }
+ 
+    .empty-message i {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+      opacity: 0.5;
+    }
+ 
+    .empty-message p {
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+ 
+    /* Loading */
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+ 
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+ 
+    /* Animação de fade in */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+ 
+    .fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    /* Categories toggle */
+    .toggle-categories {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      transition: var(--transition);
+      touch-action: manipulation;
+    }
+    .toggle-categories:hover {
+      background: #c7361e;
+    }
+    .categories-container {
+      display: none;
+    }
+    .categories-container.show {
+      display: block;
+    }
+    /* Controles do mapa */
+    .leaflet-control-container .leaflet-top {
+      top: 10px;
+    }
+ 
+    .leaflet-control-container .leaflet-right {
+      right: 10px;
+    }
+ 
+    .map-control-btn {
+      background: var(--header-bg);
+      border: none;
+      border-radius: 4px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: all 0.2s ease;
+      touch-action: manipulation;
+    }
+    .map-control-btn:hover {
+      background: var(--modal-footer-bg);
+    }
+    .map-control-btn i {
+      font-size: 18px;
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+    }
+    /* Status de funcionamento */
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-left: 0.5rem;
+    }
+    .status-open {
+      background-color: var(--success-color);
+      color: white;
+    }
+    .status-closed {
+      background-color: var(--danger-color);
+      color: white;
+    }
+    /* Botão do WhatsApp */
+    .whatsapp-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #25D366;
+      color: white !important;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      text-decoration: none;
+      margin-top: 0.5rem;
+      transition: var(--transition);
+    }
+    .whatsapp-btn:hover {
+      background-color: #128C7E;
+      color: white !important;
+      transform: translateY(-1px);
+    }
+    .whatsapp-btn i {
+      margin-right: 0.25rem;
+    }
+    /* Responsividade */
+    @media (max-width: 992px) {
+      #sidebar {
+        max-width: 320px;
+      }
+    }
+ 
+    @media (max-width: 768px) {
+      #sidebar {
+        width: 100%;
+        left: -100%;
+        z-index: 1001;
+      }
+   
+      #sidebar.active {
+        left: 0;
+      }
+   
+      #map-container {
+        margin-left: 0;
+      }
+   
+      #map-container.active {
+        margin-left: 0;
+      }
+   
+      #header {
+        padding: 0.5rem 0.75rem;
+      }
+   
+      #header h1 {
+        font-size: 1.25rem;
+      }
+   
+      #auth-section button {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+      }
+   
+      .toggle-sidebar {
+        width: 36px;
+        height: 36px;
+      }
+   
+      .toggle-sidebar i {
+        font-size: 16px;
+      }
+   
+      .floating-btn {
+        bottom: 1rem;
+        right: 1rem;
+        width: 45px;
+        height: 45px;
+        font-size: 1.1rem;
+      }
+   
+      .modal-content {
+        width: 95%;
+        max-width: 360px;
+      }
+   
+      .modal-header h2 {
+        font-size: 1.1rem;
+      }
+   
+      .form-group label {
+        font-size: 0.85rem;
+      }
+   
+      .form-control, .select-control {
+        font-size: 0.85rem;
+        padding: 0.6rem;
+      }
+   
+      .btn {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.85rem;
+      }
+    }
+ 
+    @media (max-width: 480px) {
+      #header h1 {
+        font-size: 1.1rem;
+      }
+   
+      #auth-section {
+        gap: 0.3rem;
+      }
+   
+      #auth-section button {
+        padding: 0.4rem;
+        font-size: 0.75rem;
+      }
+   
+      #dark-mode-toggle {
+        width: 36px;
+        height: 36px;
+        font-size: 0.8rem;
+      }
+   
+      .sidebar-header h2 {
+        font-size: 1rem;
+      }
+   
+      .cliente-item h3 {
+        font-size: 0.9rem;
+      }
+   
+      .cliente-item p {
+        font-size: 0.8rem;
+      }
+   
+      .map-control-btn {
+        width: 35px;
+        height: 35px;
+      }
+   
+      .map-control-btn i {
+        font-size: 16px;
+      }
+      /* Ajustes para o modal de edição em telas pequenas */
+      .modal-body {
+        padding: 0.75rem;
+        max-height: 60vh;
+      }
+      .form-group {
+        margin-bottom: 0.75rem;
+      }
+      .form-control, .select-control {
+        padding: 0.5rem;
+      }
+      .btn {
+        padding: 0.5rem 0.75rem;
+      }
+      /* Ajuste para os selects de horário */
+      .form-group div {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .form-group select {
+        width: 100%;
+      }
+    }
+ 
+    /* Botão para alternar sidebar */
+    .toggle-sidebar {
+      display: flex;
+      background: var(--header-bg);
+      border: none;
+      border-radius: 4px;
+      width: 40px;
+      height: 40px;
+      z-index: 1000;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      justify-content: center;
+      align-items: center;
+      margin-right: 0.5rem;
+      touch-action: manipulation;
+    }
+ 
+    .toggle-sidebar i {
+      font-size: 18px;
+      color: var(--text-color);
+    }
+    @media (min-width: 769px) {
+      .toggle-sidebar {
+        display: flex;
+      }
+   
+      #sidebar:not(.active) {
+        left: -380px;
+      }
+   
+      #map-container:not(.active) {
+        margin-left: 0;
+      }
+    }
+    /* Estilos para a seleção de serviços */
+    .servicos-container {
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 0.75rem;
+      background: var(--modal-bg);
+    }
+    .servicos-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .servico-checkbox {
+      display: none;
+    }
+    .servico-label {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      background: var(--category-bg);
+      border-radius: 20px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: var(--transition);
+      color: var(--text-color);
+    }
+    .servico-checkbox:checked + .servico-label {
+      background: var(--primary-color);
+      color: white;
+    }
+    .servico-label:hover {
+      background: var(--primary-color);
+      color: white;
+    }
+    .servico-remove-btn {
+      padding: 0.25rem 0.5rem;
+      background: var(--danger-color);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.7rem;
+      margin-left: 0.25rem;
+    }
+    .servico-remove-btn:hover {
+      background: #c82333;
+    }
+    .servicos-gerenciar-container {
+      margin-top: 1rem;
+      padding: 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      background: var(--modal-bg);
+    }
+    .servicos-gerenciar-list {
+      margin-top: 0.5rem;
+    }
+    .servico-gerenciar-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .servico-gerenciar-item:last-child {
+      border-bottom: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <div class="header-left">
+      <button class="toggle-sidebar" id="toggle-sidebar">
+        <i class="fas fa-bars"></i>
+      </button>
+      <h1><i class="fas fa-map-marked-alt"></i> Mapa de Clientes</h1>
+    </div>
+    <div id="auth-section">
+      <span id="auth-status"></span>
+      <button id="login-btn"><i class="fas fa-sign-in-alt"></i> Admin</button>
+      <button id="logout-btn" style="display: none;"><i class="fas fa-sign-out-alt"></i> Sair</button>
+      <button id="download-backup-btn" style="display: none;"><i class="fas fa-download"></i> Backup</button>
+      <button id="dark-mode-toggle" title="Alternar modo escuro">
+        <i class="fas fa-moon"></i>
+      </button>
+      <button id="back-btn" onclick="window.location.href='https://guarabusiness.com.br'"><i class="fas fa-arrow-left"></i> Voltar</button>
+    </div>
+  </div>
+  <div id="main-container">
+    <div id="sidebar">
+      <div class="sidebar-header">
+        <h2>Lista de Clientes</h2>
+        <span id="clientes-count">0 clientes</span>
+      </div>
+   
+      <div class="sidebar-tools">
+        <div class="search-container">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" id="search" placeholder="Buscar clientes...">
+        </div>
+     
+        <button class="toggle-categories">
+          <i class="fas fa-tags"></i> Mostrar Categorias
+        </button>
+     
+        <div class="categories-container">
+          <div class="categories">
+            <button class="category-btn active" data-category="all">Todas</button>
+            <button class="category-btn" data-category="restaurante">Restaurantes (<span class="category-count" data-category="restaurante">0</span>)</button>
+            <button class="category-btn" data-category="padaria">Padarias (<span class="category-count" data-category="padaria">0</span>)</button>
+            <button class="category-btn" data-category="oficina-mecanica">Oficinas Mecânicas (<span class="category-count" data-category="oficina-mecanica">0</span>)</button>
+            <button class="category-btn" data-category="oficina-pintura">Oficinas de Pintura (<span class="category-count" data-category="oficina-pintura">0</span>)</button>
+            <button class="category-btn" data-category="salao">Salões (<span class="category-count" data-category="salao">0</span>)</button>
+            <button class="category-btn" data-category="barbearia">Barbearias (<span class="category-count" data-category="barbearia">0</span>)</button>
+            <button class="category-btn" data-category="mercado">Mercados (<span class="category-count" data-category="mercado">0</span>)</button>
+            <button class="category-btn" data-category="farmacia">Farmácias (<span class="category-count" data-category="farmacia">0</span>)</button>
+            <button class="category-btn" data-category="lanchonete">Lanchonetes (<span class="category-count" data-category="lanchonete">0</span>)</button>
+            <button class="category-btn" data-category="pizzaria">Pizzarias (<span class="category-count" data-category="pizzaria">0</span>)</button>
+            <button class="category-btn" data-category="hamburgueria">Hamburguerias (<span class="category-count" data-category="hamburgueria">0</span>)</button>
+            <button class="category-btn" data-category="bar">Bares (<span class="category-count" data-category="bar">0</span>)</button>
+            <button class="category-btn" data-category="lava-jato">Lava Jatos (<span class="category-count" data-category="lava-jato">0</span>)</button>
+            <button class="category-btn" data-category="distribuidora">Distribuidoras (<span class="category-count" data-category="distribuidora">0</span>)</button>
+            <button class="category-btn" data-category="outros">Outros (<span class="category-count" data-category="outros">0</span>)</button>
+          </div>
+        </div>
+      </div>
+   
+      <div id="clientes-list">
+        <div class="empty-message">
+          <i class="fas fa-building"></i>
+          <p>Nenhum cliente cadastrado</p>
+        </div>
+      </div>
+    </div>
+ 
+    <div id="map-container">
+      <div id="map"></div>
+    </div>
+  </div>
+  <!-- Botão flutuante para gerenciar serviços e categorias (visível apenas para admin) -->
+  <button id="manage-services-categories-btn" class="floating-btn" style="bottom: 5rem; display: none;">
+    <i class="fas fa-cog"></i>
+  </button>
+  <!-- Botão flutuante para adicionar cliente (visível apenas para admin) -->
+  <button id="add-cliente-btn" class="floating-btn" style="display: none;">
+    <i class="fas fa-plus"></i>
+  </button>
+  <!-- Modal para gerenciar serviços e categorias -->
+  <div id="manage-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Gerenciar Serviços e Categorias</h2>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+          <button id="services-tab" class="btn btn-primary" style="flex:1;">Serviços</button>
+          <button id="categories-tab" class="btn btn-secondary" style="flex:1;">Categorias</button>
+        </div>
+        <div id="services-section" style="display: block;">
+          <h3>Serviços</h3>
+          <div id="manage-servicos-list" class="servicos-gerenciar-list"></div>
+          <div style="margin-top: 1rem;">
+            <input type="text" id="novo-servico-global" class="form-control" placeholder="Novo serviço...">
+            <button id="add-servico-global" class="btn btn-primary" style="margin-top: 0.5rem;">Adicionar</button>
+          </div>
+        </div>
+        <div id="categories-section" style="display: none;">
+          <h3>Categorias</h3>
+          <div id="manage-categories-list" class="servicos-gerenciar-list"></div>
+          <div style="margin-top: 1rem;">
+            <input type="text" id="nova-categoria" class="form-control" placeholder="Nova categoria...">
+            <button id="add-categoria-global" class="btn btn-primary" style="margin-top: 0.5rem;">Adicionar</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="close-manage" class="btn btn-secondary">Fechar</button>
+      </div>
+    </div>
+  </div>
+  <!-- Modal para adicionar/editar cliente -->
+  <div id="cliente-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-title">Adicionar Novo Cliente</h2>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="cliente-form">
+          <input type="hidden" id="cliente-id">
+       
+          <div class="form-group">
+            <label for="cliente-nome">Nome do Cliente</label>
+            <input type="text" id="cliente-nome" class="form-control">
+          </div>
+       
+          <div class="form-group">
+            <label for="cliente-categoria">Categoria</label>
+            <select id="cliente-categoria" class="select-control">
+              <option value="">Selecione uma categoria</option>
+            </select>
+          </div>
+       
+          <div class="form-group">
+            <label for="cliente-endereco">Endereço</label>
+            <input type="text" id="cliente-endereco" class="form-control">
+          </div>
+       
+          <div class="form-group">
+            <label for="cliente-coordinates">Coordenadas (lat,lng)</label>
+            <input type="text" id="cliente-coordinates" class="form-control"
+                   placeholder="Ex: -23.5505, -46.6333">
+          </div>
+       
+          <div class="form-group">
+            <label>Serviços Prestados</label>
+            <div class="servicos-container">
+              <div class="servicos-list" id="servicos-list">
+                <!-- Os serviços serão carregados dinamicamente aqui -->
+              </div>
+            </div>
+          </div>
+       
+          <div class="form-group">
+            <label for="cliente-site">Site</label>
+            <input type="url" id="cliente-site" class="form-control" placeholder="https://">
+          </div>
+       
+          <div class="form-group">
+            <label for="cliente-telefone">Telefone</label>
+            <input type="tel" id="cliente-telefone" class="form-control" placeholder="(00) 00000-0000">
+          </div>
+       
+          <div class="form-group">
+            <label for="cliente-whatsapp">WhatsApp</label>
+            <input type="tel" id="cliente-whatsapp" class="form-control" placeholder="(00) 00000-0000">
+          </div>
+       
+          <div class="form-group">
+            <label for="cliente-horario">Horário de Funcionamento</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <select id="cliente-horario-inicio" class="form-control">
+                <option value="">Abertura</option>
+                <option value="00:00">00:00</option>
+                <option value="01:00">01:00</option>
+                <option value="02:00">02:00</option>
+                <option value="03:00">03:00</option>
+                <option value="04:00">04:00</option>
+                <option value="05:00">05:00</option>
+                <option value="06:00">06:00</option>
+                <option value="07:00">07:00</option>
+                <option value="08:00">08:00</option>
+                <option value="09:00">09:00</option>
+                <option value="10:00">10:00</option>
+                <option value="11:00">11:00</option>
+                <option value="12:00">12:00</option>
+                <option value="13:00">13:00</option>
+                <option value="14:00">14:00</option>
+                <option value="15:00">15:00</option>
+                <option value="16:00">16:00</option>
+                <option value="17:00">17:00</option>
+                <option value="18:00">18:00</option>
+                <option value="19:00">19:00</option>
+                <option value="20:00">20:00</option>
+                <option value="21:00">21:00</option>
+                <option value="22:00">22:00</option>
+                <option value="23:00">23:00</option>
+              </select>
+              <select id="cliente-horario-fim" class="form-control">
+                <option value="">Fechamento</option>
+                <option value="00:00">00:00</option>
+                <option value="01:00">01:00</option>
+                <option value="02:00">02:00</option>
+                <option value="03:00">03:00</option>
+                <option value="04:00">04:00</option>
+                <option value="05:00">05:00</option>
+                <option value="06:00">06:00</option>
+                <option value="07:00">07:00</option>
+                <option value="08:00">08:00</option>
+                <option value="09:00">09:00</option>
+                <option value="10:00">10:00</option>
+                <option value="11:00">11:00</option>
+                <option value="12:00">12:00</option>
+                <option value="13:00">13:00</option>
+                <option value="14:00">14:00</option>
+                <option value="15:00">15:00</option>
+                <option value="16:00">16:00</option>
+                <option value="17:00">17:00</option>
+                <option value="18:00">18:00</option>
+                <option value="19:00">19:00</option>
+                <option value="20:00">20:00</option>
+                <option value="21:00">21:00</option>
+                <option value="22:00">22:00</option>
+                <option value="23:00">23:00</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button id="cancel-cliente" class="btn btn-secondary">Cancelar</button>
+        <button id="delete-cliente" class="btn btn-danger" style="display: none;">Excluir</button>
+        <button id="save-cliente" class="btn btn-primary">
+          <span id="save-text">Salvar</span>
+          <span id="save-loading" class="loading" style="display: none;"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- Modal de login -->
+  <div id="login-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Acesso Admin</h2>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="login-form">
+          <div class="login-message">
+            <i class="fas fa-lock" style="font-size: 1.5rem; margin-bottom: 1rem; display: block;"></i>
+            Insira o e-mail e senha de administrador
+          </div>
+          <div class="form-group">
+            <label for="login-email">E-mail *</label>
+            <input type="email" id="login-email" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Senha *</label>
+            <input type="password" id="login-password" class="form-control" required>
+          </div>
+          <div id="login-error" style="color: var(--danger-color); margin-top: 1rem; display: none;">
+            Credenciais incorretas. Tente novamente.
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button id="cancel-login" class="btn btn-secondary">Cancelar</button>
+        <button id="confirm-login" class="btn btn-primary">
+          <span id="login-text">Entrar</span>
+          <span id="login-loading" class="loading" style="display: none;"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Aguarda o carregamento completo da página
+    document.addEventListener('DOMContentLoaded', function() {
+      // Configuração do Firebase
+      const firebaseConfig = {
+        apiKey: "AIzaSyD7CFqBoQP-AE8JgukD6VPA9Klri8gmV80",
+        authDomain: "wandrewclientes.firebaseapp.com",
+        projectId: "wandrewclientes",
+        storageBucket: "wandrewclientes.firebasestorage.app",
+        messagingSenderId: "750131581525",
+        appId: "1:750131581525:web:54cc492b938c8baa753adc",
+        measurementId: "G-K8EHL2Q51H"
+      };
+   
+      // Inicializa o Firebase
+      const app = firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+      const auth = firebase.auth();
+   
+      // Elementos do DOM
+      const mapElement = document.getElementById('map');
+      const clientesList = document.getElementById('clientes-list');
+      const searchInput = document.getElementById('search');
+      const clientesCount = document.getElementById('clientes-count');
+      const addClienteBtn = document.getElementById('add-cliente-btn');
+      const clienteModal = document.getElementById('cliente-modal');
+      const loginModal = document.getElementById('login-modal');
+      const closeButtons = document.querySelectorAll('.close-btn, #cancel-cliente, #cancel-login');
+      const saveClienteBtn = document.getElementById('save-cliente');
+      const deleteClienteBtn = document.getElementById('delete-cliente');
+      const clienteForm = document.getElementById('cliente-form');
+      const loginForm = document.getElementById('login-form');
+      const logoutBtn = document.getElementById('logout-btn');
+      const loginBtn = document.getElementById('login-btn');
+      const downloadBackupBtn = document.getElementById('download-backup-btn');
+      const confirmLoginBtn = document.getElementById('confirm-login');
+      const authStatus = document.getElementById('auth-status');
+      const authSection = document.getElementById('auth-section');
+      const loginEmail = document.getElementById('login-email');
+      const loginPassword = document.getElementById('login-password');
+      const loginError = document.getElementById('login-error');
+      const saveText = document.getElementById('save-text');
+      const saveLoading = document.getElementById('save-loading');
+      const loginText = document.getElementById('login-text');
+      const loginLoading = document.getElementById('login-loading');
+      const toggleCategoriesBtn = document.querySelector('.toggle-categories');
+      const categoriesContainer = document.querySelector('.categories-container');
+      const toggleSidebarBtn = document.getElementById('toggle-sidebar');
+      const sidebar = document.getElementById('sidebar');
+      const mapContainer = document.getElementById('map-container');
+      const darkModeToggle = document.getElementById('dark-mode-toggle');
+      const manageBtn = document.getElementById('manage-services-categories-btn');
+      const manageModal = document.getElementById('manage-modal');
+      const servicesTab = document.getElementById('services-tab');
+      const categoriesTab = document.getElementById('categories-tab');
+      const servicesSection = document.getElementById('services-section');
+      const categoriesSection = document.getElementById('categories-section');
+      const manageServicosList = document.getElementById('manage-servicos-list');
+      const novoServicoGlobalInput = document.getElementById('novo-servico-global');
+      const addServicoGlobalBtn = document.getElementById('add-servico-global');
+      const manageCategoriesList = document.getElementById('manage-categories-list');
+      const novaCategoriaInput = document.getElementById('nova-categoria');
+      const addCategoriaGlobalBtn = document.getElementById('add-categoria-global');
+      const closeManageBtn = document.getElementById('close-manage');
+     
+      // Novos elementos para serviços
+      const servicosList = document.getElementById('servicos-list');
+   
+      // Variáveis de estado
+      let map;
+      let markers = {};
+      let clientes = [];
+      let editingClienteId = null;
+      let isAdmin = false;
+      let unsubscribeClientes;
+      let currentCategory = 'all';
+      let currentMapLayer = 'street'; // 'street' ou 'satellite'
+      let streetLayer, satelliteLayer;
+      let servicos = []; // Lista de serviços disponíveis
+      let categorias = [
+        {slug: 'restaurante', name: 'Restaurante'},
+        {slug: 'padaria', name: 'Padaria'},
+        {slug: 'oficina-mecanica', name: 'Oficina Mecânica'},
+        {slug: 'oficina-pintura', name: 'Oficina de Pintura'},
+        {slug: 'salao', name: 'Salão de Beleza'},
+        {slug: 'barbearia', name: 'Barbearia'},
+        {slug: 'mercado', name: 'Mercado'},
+        {slug: 'farmacia', name: 'Farmácia'},
+        {slug: 'lanchonete', name: 'Lanchonete'},
+        {slug: 'pizzaria', name: 'Pizzaria'},
+        {slug: 'hamburgueria', name: 'Hamburgueria'},
+        {slug: 'bar', name: 'Bar'},
+        {slug: 'lava-jato', name: 'Lava Jato'},
+        {slug: 'distribuidora', name: 'Distribuidora'},
+        {slug: 'outros', name: 'Outros'}
+      ];
+   
+      // Inicializa a lista de serviços
+      function initServicos() {
+        // Serviços padrão
+        servicos = [
+          "Criação de Sites",
+          "Consultoria",
+          "Design Gráfico",
+          "Gestão de Anúncios",
+          "Gestão Google Meu Negócio"
+        ];
+       
+        // Carrega serviços salvos do localStorage, se existirem
+        const savedServicos = localStorage.getItem('servicos');
+        if (savedServicos) {
+          servicos = JSON.parse(savedServicos);
+        }
+       
+        renderServicos();
+      }
+     
+      // Salva a lista de serviços no localStorage
+      function saveServicos() {
+        localStorage.setItem('servicos', JSON.stringify(servicos));
+      }
+     
+      // Renderiza a lista de serviços no formulário
+      function renderServicos() {
+        servicosList.innerHTML = '';
+       
+        servicos.forEach(servico => {
+          const servicoId = servico.toLowerCase().replace(/\s+/g, '-');
+         
+          const servicoItem = document.createElement('div');
+          servicoItem.innerHTML = `
+            <input type="checkbox" id="servico-${servicoId}" class="servico-checkbox" value="${servico}">
+            <label for="servico-${servicoId}" class="servico-label">${servico}</label>
+          `;
+         
+          servicosList.appendChild(servicoItem);
+        });
+      }
+     
+      // Obtém os serviços selecionados no formulário
+      function getSelectedServicos() {
+        const selectedServicos = [];
+        document.querySelectorAll('.servico-checkbox:checked').forEach(checkbox => {
+          selectedServicos.push(checkbox.value);
+        });
+        return selectedServicos;
+      }
+     
+      // Define os serviços selecionados no formulário
+      function setSelectedServicos(servicosArray) {
+        // Desmarca todos os checkboxes primeiro
+        document.querySelectorAll('.servico-checkbox').forEach(checkbox => {
+          checkbox.checked = false;
+        });
+       
+        // Marca os checkboxes correspondentes aos serviços fornecidos
+        servicosArray.forEach(servico => {
+          const servicoId = servico.toLowerCase().replace(/\s+/g, '-');
+          const checkbox = document.getElementById(`servico-${servicoId}`);
+          if (checkbox) {
+            checkbox.checked = true;
+          }
+        });
+      }
+      // Inicializa categorias
+      function initCategorias() {
+        const savedCategorias = localStorage.getItem('categorias');
+        if (savedCategorias) {
+          categorias = JSON.parse(savedCategorias);
+        }
+        renderCategoriasSelect();
+        renderCategoryButtons();
+      }
+     
+      // Salva categorias
+      function saveCategorias() {
+        localStorage.setItem('categorias', JSON.stringify(categorias));
+      }
+     
+      // Renderiza select de categorias
+      function renderCategoriasSelect() {
+        const select = document.getElementById('cliente-categoria');
+        select.innerHTML = '<option value="">Selecione uma categoria</option>';
+        categorias.forEach(cat => {
+          const option = document.createElement('option');
+          option.value = cat.slug;
+          option.textContent = cat.name;
+          select.appendChild(option);
+        });
+      }
+     
+      // Renderiza botões de categorias na sidebar
+      function renderCategoryButtons() {
+        const categoriesDiv = document.querySelector('.categories');
+        categoriesDiv.innerHTML = '<button class="category-btn active" data-category="all">Todas</button>';
+        categorias.forEach(cat => {
+          const count = clientes.filter(c => c.categoria === cat.slug).length;
+          const btn = document.createElement('button');
+          btn.className = 'category-btn';
+          btn.dataset.category = cat.slug;
+          btn.innerHTML = `${cat.name} (<span class="category-count" data-category="${cat.slug}">${count}</span>)`;
+          categoriesDiv.appendChild(btn);
+        });
+      }
+     
+      // Atualiza contagens de categorias
+      function updateCategoryCountsDynamic() {
+        categorias.forEach(cat => {
+          const count = clientes.filter(cliente => cliente.categoria === cat.slug).length;
+          const countElement = document.querySelector(`.category-count[data-category="${cat.slug}"]`);
+          if (countElement) {
+            countElement.textContent = count;
+          }
+        });
+      }
+     
+      // Abre modal de gerenciamento
+      function openManageModal() {
+        if (!isAdmin) return;
+        renderManageServicos();
+        renderManageCategorias();
+        manageModal.style.display = 'flex';
+        setTimeout(() => manageModal.classList.add('show'), 10);
+      }
+     
+      // Renderiza lista de serviços no gerenciamento
+      function renderManageServicos() {
+        manageServicosList.innerHTML = '';
+        servicos.forEach(servico => {
+          const item = document.createElement('div');
+          item.className = 'servico-gerenciar-item';
+          item.innerHTML = `
+            <span>${servico}</span>
+            <button type="button" class="servico-remove-btn" data-servico="${servico}">
+              <i class="fas fa-trash"></i> Remover
+            </button>
+          `;
+          manageServicosList.appendChild(item);
+        });
+        manageServicosList.querySelectorAll('.servico-remove-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const servico = this.dataset.servico;
+            deleteGlobalServico(servico);
+          });
+        });
+      }
+     
+      // Renderiza lista de categorias no gerenciamento
+      function renderManageCategorias() {
+        manageCategoriesList.innerHTML = '';
+        categorias.forEach(cat => {
+          const item = document.createElement('div');
+          item.className = 'servico-gerenciar-item';
+          item.innerHTML = `
+            <span>${cat.name}</span>
+            <button type="button" class="servico-remove-btn" data-categoria="${cat.slug}">
+              <i class="fas fa-trash"></i> Remover
+            </button>
+          `;
+          manageCategoriesList.appendChild(item);
+        });
+        manageCategoriesList.querySelectorAll('.servico-remove-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const cat = this.dataset.categoria;
+            deleteGlobalCategoria(cat);
+          });
+        });
+      }
+     
+      // Adiciona serviço global
+      function addServicoGlobal() {
+        const novoServico = novoServicoGlobalInput.value.trim();
+        if (novoServico && !servicos.includes(novoServico)) {
+          servicos.push(novoServico);
+          saveServicos();
+          renderServicos();
+          renderManageServicos();
+          novoServicoGlobalInput.value = '';
+        } else if (servicos.includes(novoServico)) {
+          alert('Este serviço já existe na lista!');
+        }
+      }
+     
+      // Adiciona categoria global
+      function addCategoriaGlobal() {
+        const newName = novaCategoriaInput.value.trim();
+        const newSlug = newName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        if (newName && !categorias.some(c => c.slug === newSlug)) {
+          categorias.push({slug: newSlug, name: newName});
+          saveCategorias();
+          renderCategoriasSelect();
+          renderCategoryButtons();
+          updateCategoryCountsDynamic();
+          renderManageCategorias();
+          novaCategoriaInput.value = '';
+        } else if (categorias.some(c => c.slug === newSlug)) {
+          alert('Esta categoria já existe!');
+        }
+      }
+     
+      // Remove serviço global
+      async function deleteGlobalServico(servico) {
+        if (!confirm(`Tem certeza que deseja remover o serviço "${servico}"?`)) return;
+        try {
+          const snapshot = await db.collection("empresas").get();
+          const batch = db.batch();
+          let updatedCount = 0;
+          snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            if (data.servicos && Array.isArray(data.servicos) && data.servicos.includes(servico)) {
+              const updatedServicos = data.servicos.filter(s => s !== servico);
+              batch.update(doc.ref, { servicos: updatedServicos, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+              updatedCount++;
+            }
+          });
+          await batch.commit();
+          servicos = servicos.filter(s => s !== servico);
+          saveServicos();
+          renderServicos();
+          renderManageServicos();
+          alert(`Serviço removido de ${updatedCount} clientes.`);
+        } catch (e) {
+          console.error(e);
+          alert('Erro ao remover serviço.');
+        }
+      }
+     
+      // Remove categoria global
+      async function deleteGlobalCategoria(catSlug) {
+        if (!confirm(`Tem certeza que deseja remover a categoria "${getCategoryName(catSlug)}"?`)) return;
+        try {
+          const snapshot = await db.collection("empresas").get();
+          const batch = db.batch();
+          let updatedCount = 0;
+          snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            if (data.categoria === catSlug) {
+              const newCat = categorias.some(c => c.slug === 'outros') ? 'outros' : null;
+              batch.update(doc.ref, { categoria: newCat, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+              updatedCount++;
+            }
+          });
+          await batch.commit();
+          categorias = categorias.filter(c => c.slug !== catSlug);
+          if (!categorias.some(c => c.slug === 'outros')) {
+            categorias.push({slug: 'outros', name: 'Outros'});
+            saveCategorias();
+          }
+          saveCategorias();
+          renderCategoriasSelect();
+          renderCategoryButtons();
+          updateCategoryCountsDynamic();
+          renderManageCategorias();
+          alert(`Categoria removida de ${updatedCount} clientes.`);
+        } catch (e) {
+          console.error(e);
+          alert('Erro ao remover categoria.');
+        }
+      }
+      // Função para alternar o modo escuro
+      function toggleDarkMode() {
+        const isDarkMode = document.body.dataset.theme === 'dark';
+        document.body.dataset.theme = isDarkMode ? 'light' : 'dark';
+        darkModeToggle.innerHTML = `<i class="fas fa-${isDarkMode ? 'moon' : 'sun'}"></i>`;
+        localStorage.setItem('theme', document.body.dataset.theme);
+      }
+   
+      // Carrega o tema salvo ou define o padrão
+      function loadTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.body.dataset.theme = savedTheme;
+        darkModeToggle.innerHTML = `<i class="fas fa-${savedTheme === 'dark' ? 'sun' : 'moon'}"></i>`;
+      }
+   
+      // Inicializa o mapa
+      function initMap() {
+        map = L.map(mapElement).setView([-15.7801, -47.9292], 4); // Centro da América do Sul, zoom nível 4
+     
+        // Camadas do mapa
+        streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        });
+     
+        satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        });
+     
+        // Adiciona a camada de rua por padrão
+        streetLayer.addTo(map);
+     
+        // Cria controles personalizados
+        const SatelliteControl = L.Control.extend({
+          onAdd: function(map) {
+            const container = L.DomUtil.create('div', 'leaflet-control leaflet-control-satellite');
+            const button = L.DomUtil.create('a', 'map-control-btn', container);
+            button.innerHTML = '<i class="fas fa-satellite"></i>';
+            button.title = 'Visualização de satélite';
+            button.href = '#';
+         
+            L.DomEvent.on(button, 'click', function(e) {
+              L.DomEvent.stopPropagation(e);
+              L.DomEvent.preventDefault(e);
+              map.removeLayer(streetLayer);
+              map.addLayer(satelliteLayer);
+              currentMapLayer = 'satellite';
+              container.style.display = 'none';
+              document.querySelector('.leaflet-control-street').style.display = 'block';
+            });
+         
+            return container;
+          }
+        });
+     
+        const StreetControl = L.Control.extend({
+          onAdd: function(map) {
+            const container = L.DomUtil.create('div', 'leaflet-control leaflet-control-street');
+            const button = L.DomUtil.create('a', 'map-control-btn', container);
+            button.innerHTML = '<i class="fas fa-map"></i>';
+            button.title = 'Visualização de rua';
+            button.href = '#';
+            container.style.display = 'none';
+         
+            L.DomEvent.on(button, 'click', function(e) {
+              L.DomEvent.stopPropagation(e);
+              L.DomEvent.preventDefault(e);
+              map.removeLayer(satelliteLayer);
+              map.addLayer(streetLayer);
+              currentMapLayer = 'street';
+              container.style.display = 'none';
+              document.querySelector('.leaflet-control-satellite').style.display = 'block';
+            });
+         
+            return container;
+          }
+        });
+     
+        // Adiciona os controles ao mapa
+        new SatelliteControl({ position: 'topright' }).addTo(map);
+        new StreetControl({ position: 'topright' }).addTo(map);
+     
+        // Controle de Zoom Rápido (Guarapari, ES, Mundo)
+        const QuickZoomControl = L.Control.extend({
+          onAdd: function(map) {
+            const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            container.style.backgroundColor = 'var(--header-bg)';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.boxShadow = 'var(--shadow)';
+            container.style.borderRadius = '4px';
+            container.style.overflow = 'hidden';
+            
+            // Previne que cliques no botão passem para o mapa
+            L.DomEvent.disableClickPropagation(container);
+
+            function createBtn(icon, label, lat, lng, zoom) {
+              const btn = L.DomUtil.create('a', '', container);
+              btn.href = '#';
+              btn.title = label;
+              btn.innerHTML = `<i class="${icon}" style="width: 20px; text-align: center;"></i> <span style="margin-left: 8px; font-size: 13px; font-weight: 500;">${label}</span>`;
+              btn.style.width = 'auto';
+              btn.style.padding = '0 12px';
+              btn.style.height = '40px';
+              btn.style.display = 'flex';
+              btn.style.justifyContent = 'flex-start';
+              btn.style.alignItems = 'center';
+              btn.style.color = 'var(--text-color)';
+              btn.style.textDecoration = 'none';
+              btn.style.borderBottom = '1px solid var(--border-color)';
+              btn.style.transition = 'background 0.2s';
+              btn.style.cursor = 'pointer';
+              btn.style.whiteSpace = 'nowrap';
+              
+              btn.onmouseover = function() { this.style.backgroundColor = 'var(--modal-footer-bg)'; };
+              btn.onmouseout = function() { this.style.backgroundColor = 'transparent'; };
+
+              L.DomEvent.on(btn, 'click', function(e) {
+                L.DomEvent.stopPropagation(e);
+                L.DomEvent.preventDefault(e);
+                map.flyTo([lat, lng], zoom);
+              });
+              
+              return btn;
+            }
+
+            // Botão 1: Guarapari - ES
+            createBtn('fas fa-umbrella-beach', 'Guarapari', -20.6550, -40.4976, 13);
+            
+            // Botão 2: Espírito Santo
+            createBtn('fas fa-map', 'Espírito Santo', -19.6, -40.7, 8);
+            
+            // Botão 3: Brasil
+            createBtn('fas fa-flag', 'Brasil', -14.2350, -51.9253, 4);
+            
+            // Botão 4: Mundo
+            const btnWorld = createBtn('fas fa-globe', 'Mundo', 0, 0, 2);
+            btnWorld.style.borderBottom = 'none'; // Remove borda do último
+
+            return container;
+          }
+        });
+
+        new QuickZoomControl({ position: 'topright' }).addTo(map);
+
+        // Evento de clique no mapa para adicionar cliente (só funciona no modo admin)
+        map.on('click', function(e) {
+          if (isAdmin && clienteModal.style.display === 'flex' && !editingClienteId) {
+            document.getElementById('cliente-coordinates').value = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+          }
+        });
+      }
+   
+      // Carrega clientes do Firestore
+      function loadClientes() {
+        // IMPORTANTE: A coleção no Firebase ainda se chama "empresas"
+        // Para que os pontos apareçam, precisamos acessar a coleção correta
+        unsubscribeClientes = db.collection("empresas")
+          .onSnapshot(snapshot => {
+            clientes = [];
+            snapshot.forEach(doc => {
+              clientes.push({
+                id: doc.id,
+                ...doc.data()
+              });
+            });
+         
+            updateClientesCount();
+            updateCategoryCountsDynamic();
+            filterAndRenderClientes();
+          }, error => {
+            console.error("Erro ao carregar clientes:", error);
+          });
+      }
+   
+      // Função para fazer download do backup
+      async function downloadBackup() {
+        if (!isAdmin) return;
+     
+        try {
+          // IMPORTANTE: A coleção no Firebase ainda se chama "empresas"
+          const snapshot = await db.collection("empresas").get();
+          const clientesData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+       
+          // Criar cabeçalho CSV
+          const headers = ['id', 'nome', 'categoria', 'endereco', 'lat', 'lng', 'servicos', 'site', 'telefone', 'whatsapp', 'horarioInicio', 'horarioFim', 'createdAt', 'updatedAt'];
+          const csvRows = [headers.join(',')];
+       
+          // Converter cada cliente em uma linha CSV
+          clientesData.forEach(cliente => {
+            const row = headers.map(header => {
+              let value = cliente[header] || '';
+              // Para serviços, converter array em string separada por ponto e vírgula
+              if (header === 'servicos' && Array.isArray(value)) {
+                value = value.join('; ');
+              }
+              // Escapar aspas e vírgulas no conteúdo
+              if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                value = `"${value.replace(/"/g, '""')}"`;
+              }
+              return value;
+            });
+            csvRows.push(row.join(','));
+          });
+       
+          // Criar e baixar o arquivo CSV
+          const csvContent = csvRows.join('\n');
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.setAttribute('href', url);
+          link.setAttribute('download', `clientes_backup_${new Date().toISOString().split('T')[0]}.csv`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        } catch (error) {
+          console.error("Erro ao criar backup:", error);
+          alert("Ocorreu um erro ao criar o backup. Tente novamente.");
+        }
+      }
+   
+      // Atualiza o contador de clientes
+      function updateClientesCount() {
+        const count = clientes.length;
+        clientesCount.textContent = `${count} ${count === 1 ? 'cliente' : 'clientes'}`;
+      }
+   
+      // Filtra clientes por categoria and termo de busca
+      function filterClientes() {
+        const searchTerm = searchInput.value.toLowerCase();
+     
+        return clientes.filter(cliente => {
+          const categoryMatch = currentCategory === 'all' ||
+                               (cliente.categoria && cliente.categoria === currentCategory);
+       
+          const searchMatch = cliente.nome.toLowerCase().includes(searchTerm) ||
+                             (cliente.endereco && cliente.endereco.toLowerCase().includes(searchTerm)) ||
+                             (cliente.categoria && cliente.categoria.toLowerCase().includes(searchTerm)) ||
+                             (cliente.servicos && Array.isArray(cliente.servicos) &&
+                              cliente.servicos.some(servico => servico.toLowerCase().includes(searchTerm)));
+       
+          return categoryMatch && searchMatch;
+        });
+      }
+   
+      // Filtra e renderiza clientes
+      function filterAndRenderClientes() {
+        const filtered = filterClientes();
+        renderClientesList(filtered);
+        renderMarkers(filtered);
+      }
+   
+      // Verifica o status do cliente
+      function getClienteStatus(cliente) {
+        if (cliente.status === 'construction') {
+          return { status: 'construction', text: 'EM CONSTRUÇÃO' };
+        }
+     
+        if (!cliente.horarioInicio || !cliente.horarioFim) return null;
+     
+        const now = new Date();
+        const currentHours = now.getHours();
+        const currentMinutes = now.getMinutes();
+        const currentTime = currentHours * 60 + currentMinutes;
+     
+        const [startHours, startMinutes] = cliente.horarioInicio.split(':').map(Number);
+        const [endHours, endMinutes] = cliente.horarioFim.split(':').map(Number);
+     
+        const startTime = startHours * 60 + startMinutes;
+        const endTime = endHours * 60 + endMinutes;
+     
+        // Se o horário de fechamento for menor que o de abertura, assume que passa pela meia-noite
+        if (endTime <= startTime) {
+          return {
+            status: (currentTime >= startTime || currentTime <= endTime) ? 'open' : 'closed',
+            text: (currentTime >= startTime || currentTime <= endTime) ? 'ABERTO' : 'FECHADO'
+          };
+        }
+     
+        return {
+          status: (currentTime >= startTime && currentTime <= endTime) ? 'open' : 'closed',
+          text: (currentTime >= startTime && currentTime <= endTime) ? 'ABERTO' : 'FECHADO'
+        };
+      }
+   
+      // Renderiza a lista de clientes na sidebar
+      function renderClientesList(clientesToRender = null) {
+        const clientesToShow = clientesToRender || clientes;
+     
+        if (clientesToShow.length === 0) {
+          clientesList.innerHTML = `
+            <div class="empty-message">
+              <i class="fas fa-building"></i>
+              <p>Nenhum cliente encontrado</p>
+            </div>
+          `;
+          return;
+        }
+     
+        clientesList.innerHTML = '';
+     
+        clientesToShow.forEach(cliente => {
+          const statusInfo = getClienteStatus(cliente);
+          const statusBadge = statusInfo ?
+            `<span class="status-badge status-${statusInfo.status}">
+              ${statusInfo.text}
+            </span>` : '';
+         
+          // Exibir serviços como tags
+          const servicosTags = cliente.servicos && Array.isArray(cliente.servicos) ?
+            cliente.servicos.map(servico => `<span class="category" style="margin-right: 0.25rem;">${servico}</span>`).join('') : '';
+       
+          const whatsappBtn = cliente.whatsapp ?
+            `<a href="https://wa.me/55${cliente.whatsapp.replace(/\D/g, '')}" target="_blank" class="whatsapp-btn">
+              <i class="fab fa-whatsapp"></i> WhatsApp
+            </a>` : '';
+       
+          const siteLink = cliente.site && cliente.site.trim() !== '' ?
+            `<a href="${cliente.site}" target="_blank"><i class="fas fa-globe"></i> Visitar Site</a>` : '';
+       
+          const clienteItem = document.createElement('div');
+          clienteItem.className = `cliente-item fade-in`;
+          clienteItem.innerHTML = `
+            <div style="display: flex; align-items: center;">
+              <h3>${cliente.nome}</h3>
+              ${statusBadge}
+            </div>
+            ${cliente.categoria ? `<span class="category">${getCategoryName(cliente.categoria)}</span>` : ''}
+            ${servicosTags}
+            ${cliente.endereco ? `<p><i class="fas fa-map-marker-alt"></i> ${cliente.endereco}</p>` : ''}
+            ${cliente.telefone ? `<p><i class="fas fa-phone"></i> ${formatPhone(cliente.telefone)}</p>` : ''}
+            ${cliente.horarioInicio && cliente.horarioFim && cliente.status !== 'construction' ?
+              `<p><i class="fas fa-clock"></i> ${cliente.horarioInicio} - ${cliente.horarioFim}</p>` : ''}
+            ${siteLink}
+            ${whatsappBtn}
+          `;
+       
+          clienteItem.addEventListener('click', function() {
+            if (cliente.lat && cliente.lng) {
+              map.setView([cliente.lat, cliente.lng], 15);
+              markers[cliente.id].openPopup();
+            }
+          });
+       
+          if (isAdmin) {
+            clienteItem.addEventListener('dblclick', function() {
+              openEditClienteModal(cliente.id);
+            });
+          }
+       
+          clientesList.appendChild(clienteItem);
+        });
+      }
+   
+      // Retorna o nome legível da categoria
+      function getCategoryName(categoryKey) {
+        const c = categorias.find(cc => cc.slug === categoryKey);
+        return c ? c.name : categoryKey;
+      }
+   
+      // Formata número de telefone
+      function formatPhone(phone) {
+        const cleaned = ('' + phone).replace(/\D/g, '');
+        const match = cleaned.match(/^(\d{2})(\d{4,5})(\d{4})$/);
+        if (match) {
+          return '(' + match[1] + ') ' + match[2] + '-' + match[3];
+        }
+        return phone;
+      }
+   
+      // Renderiza os marcadores no mapa
+      function renderMarkers(clientesToRender = null) {
+        Object.values(markers).forEach(marker => {
+          map.removeLayer(marker);
+        });
+        markers = {};
+     
+        const clientesToShow = clientesToRender || clientes;
+     
+        clientesToShow.forEach(cliente => {
+          if (!cliente.lat || !cliente.lng) return; // Não cria marcador se não houver coordenadas
+          const statusInfo = getClienteStatus(cliente);
+          const markerClass = statusInfo && statusInfo.status === 'construction' ? 'construction' : '';
+         
+          // Exibir serviços no popup
+          const servicosList = cliente.servicos && Array.isArray(cliente.servicos) ?
+            `<p style="margin: 0 0 0.25rem; font-size: 0.85rem;">
+              <strong><i class="fas fa-briefcase"></i> Serviços:</strong>
+              ${cliente.servicos.join(', ')}
+            </p>` : '';
+       
+          const marker = L.marker([cliente.lat, cliente.lng], {
+            title: cliente.nome,
+            icon: L.divIcon({
+              className: 'custom-marker',
+              html: `<div class="marker-icon ${markerClass}">${cliente.nome.charAt(0)}</div>`,
+              iconSize: [36, 36],
+              iconAnchor: [18, 18]
+            })
+          }).addTo(map);
+       
+          const statusText = statusInfo ?
+            `<p style="margin: 0 0 0.25rem; font-size: 0.85rem;">
+              <strong>Status:</strong>
+              <span style="color: ${statusInfo.status === 'open' ? 'var(--success-color)' :
+                                 statusInfo.status === 'closed' ? 'var(--danger-color)' :
+                                 'var(--warning-color)'}; font-weight: 500;">
+                ${statusInfo.text}
+              </span>
+            </p>` : '';
+       
+          const horarioText = cliente.horarioInicio && cliente.horarioFim && cliente.status !== 'construction' ?
+            `<p style="margin: 0 0 0.25rem; font-size: 0.85rem;">
+              <strong><i class="fas fa-clock"></i> Horário:</strong> ${cliente.horarioInicio} - ${cliente.horarioFim}
+            </p>` : '';
+       
+          const whatsappBtn = cliente.whatsapp ?
+            `<a href="https://wa.me/55${cliente.whatsapp.replace(/\D/g, '')}" target="_blank" class="whatsapp-btn" style="display: inline-block; margin-top: 0.5rem;">
+              <i class="fab fa-whatsapp"></i> WhatsApp
+            </a>` : '';
+       
+          const siteLink = cliente.site && cliente.site.trim() !== '' ?
+            `<a href="${cliente.site}" target="_blank" class="btn btn-primary" style="display: inline-block; margin-top: 0.5rem; padding: 0.25rem 0.5rem; font-size: 0.8rem; text-decoration: none;"><i class="fas fa-globe"></i> Visitar Site</a>` : '';
+       
+          let popupContent = `
+            <div style="min-width: 200px;">
+              <h3 style="margin: 0 0 0.5rem; font-size: 1.1rem;">${cliente.nome}</h3>
+              ${cliente.categoria ? `<p style="margin: 0 0 0.25rem; font-size: 0.85rem; color: #666;"><strong>Categoria:</strong> ${getCategoryName(cliente.categoria)}</p>` : ''}
+              ${servicosList}
+              ${cliente.endereco ? `<p style="margin: 0 0 0.25rem; font-size: 0.85rem;"><strong><i class="fas fa-map-marker-alt"></i> Endereço:</strong> ${cliente.endereco}</p>` : ''}
+              ${cliente.telefone ? `<p style="margin: 0 0 0.25rem; font-size: 0.85rem;"><strong><i class="fas fa-phone"></i> Telefone:</strong> ${formatPhone(cliente.telefone)}</p>` : ''}
+              ${statusText}
+              ${horarioText}
+              ${siteLink}
+              ${whatsappBtn}
+          `;
+       
+          if (isAdmin) {
+            popupContent += `
+              <div style="margin-top: 0.5rem;">
+                <button onclick="window.app.editCliente('${cliente.id}')" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;">
+                  <i class="fas fa-edit"></i> Editar
+                </button>
+              </div>
+            `;
+          }
+       
+          popupContent += `</div>`;
+       
+          marker.bindPopup(popupContent);
+          markers[cliente.id] = marker;
+        });
+      }
+   
+      // Processa as coordenadas do input
+      function parseCoordinates(coordsStr) {
+        if (!coordsStr) return null;
+        const parts = coordsStr.split(',').map(part => part.trim());
+        if (parts.length !== 2) return null;
+     
+        const lat = parseFloat(parts[0]);
+        const lng = parseFloat(parts[1]);
+     
+        if (isNaN(lat) || isNaN(lng)) return null;
+        return { lat, lng };
+      }
+   
+      // Abre o modal para adicionar novo cliente
+      function openAddClienteModal() {
+        if (!isAdmin) return;
+     
+        editingClienteId = null;
+        document.getElementById('modal-title').textContent = 'Adicionar Novo Cliente';
+        document.getElementById('cliente-form').reset();
+        document.getElementById('delete-cliente').style.display = 'none';
+        setSelectedServicos([]); // Limpa seleção de serviços
+        clienteModal.style.display = 'flex';
+        setTimeout(() => {
+          clienteModal.classList.add('show');
+        }, 10);
+      }
+   
+      // Abre o modal para editar cliente existente
+      function openEditClienteModal(id) {
+        if (!isAdmin) return;
+     
+        const cliente = clientes.find(e => e.id === id);
+        if (!cliente) return;
+     
+        editingClienteId = id;
+        document.getElementById('modal-title').textContent = 'Editar Cliente';
+        document.getElementById('cliente-id').value = cliente.id;
+        document.getElementById('cliente-nome').value = cliente.nome || '';
+        document.getElementById('cliente-categoria').value = cliente.categoria || '';
+        document.getElementById('cliente-endereco').value = cliente.endereco || '';
+        document.getElementById('cliente-coordinates').value = cliente.lat && cliente.lng ? `${cliente.lat}, ${cliente.lng}` : '';
+        document.getElementById('cliente-site').value = cliente.site || '';
+        document.getElementById('cliente-telefone').value = cliente.telefone || '';
+        document.getElementById('cliente-whatsapp').value = cliente.whatsapp || '';
+        document.getElementById('cliente-horario-inicio').value = cliente.horarioInicio || '';
+        document.getElementById('cliente-horario-fim').value = cliente.horarioFim || '';
+        document.getElementById('delete-cliente').style.display = 'block';
+       
+        // Define os serviços selecionados
+        setSelectedServicos(cliente.servicos || []);
+       
+        clienteModal.style.display = 'flex';
+        setTimeout(() => {
+          clienteModal.classList.add('show');
+        }, 10);
+     
+        if (cliente.lat && cliente.lng) {
+          map.setView([cliente.lat, cliente.lng], 15);
+          markers[cliente.id].openPopup();
+        }
+      }
+   
+      // Salva o cliente (adiciona ou atualiza)
+      async function saveCliente() {
+        if (!isAdmin) return;
+     
+        const coordsStr = document.getElementById('cliente-coordinates').value;
+        const coords = parseCoordinates(coordsStr);
+        if (coordsStr && !coords) {
+          alert('Por favor, insira coordenadas válidas no formato "lat, lng" ou deixe em branco');
+          return;
+        }
+     
+        const clienteData = {
+          nome: document.getElementById('cliente-nome').value || null,
+          categoria: document.getElementById('cliente-categoria').value || null,
+          endereco: document.getElementById('cliente-endereco').value || null,
+          lat: coords ? coords.lat : null,
+          lng: coords ? coords.lng : null,
+          servicos: getSelectedServicos(), // Usa a nova função para obter serviços
+          site: document.getElementById('cliente-site').value || null,
+          telefone: document.getElementById('cliente-telefone').value || null,
+          whatsapp: document.getElementById('cliente-whatsapp').value || null,
+          horarioInicio: document.getElementById('cliente-horario-inicio').value || null,
+          horarioFim: document.getElementById('cliente-horario-fim').value || null,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+     
+        try {
+          saveText.style.display = 'none';
+          saveLoading.style.display = 'inline-block';
+       
+          if (editingClienteId) {
+            // IMPORTANTE: A coleção no Firebase ainda se chama "empresas"
+            await db.collection("empresas").doc(editingClienteId).update(clienteData);
+          } else {
+            clienteData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            // IMPORTANTE: A coleção no Firebase ainda se chama "empresas"
+            await db.collection("empresas").add(clienteData);
+          }
+       
+          closeModal();
+        } catch (error) {
+          console.error("Erro ao salvar cliente:", error);
+          alert("Ocorreu um erro ao salvar o cliente. Tente novamente.");
+        } finally {
+          saveText.style.display = 'inline-block';
+          saveLoading.style.display = 'none';
+        }
+      }
+   
+      // Exclui o cliente atual
+      async function deleteCliente() {
+        if (!isAdmin || !editingClienteId) return;
+     
+        if (confirm('Tem certeza que deseja excluir este cliente?')) {
+          try {
+            // IMPORTANTE: A coleção no Firebase ainda se chama "empresas"
+            await db.collection("empresas").doc(editingClienteId).delete();
+            closeModal();
+          } catch (error) {
+            console.error("Erro ao excluir cliente:", error);
+            alert("Ocorreu um erro ao excluir o cliente. Tente novamente.");
+          }
+        }
+      }
+   
+      // Fecha o modal
+      function closeModal() {
+        clienteModal.classList.remove('show');
+        loginModal.classList.remove('show');
+     
+        setTimeout(() => {
+          clienteModal.style.display = 'none';
+          loginModal.style.display = 'none';
+          loginError.style.display = 'none';
+          loginForm.reset();
+        }, 300);
+      }
+     
+      function closeManageModal() {
+        manageModal.classList.remove('show');
+        setTimeout(() => {
+          manageModal.style.display = 'none';
+        }, 300);
+      }
+   
+      // Ativa o modo admin
+      function enableAdminMode() {
+        isAdmin = true;
+        authStatus.textContent = '';
+        authSection.classList.add('admin');
+        logoutBtn.style.display = 'block';
+        loginBtn.style.display = 'none';
+        downloadBackupBtn.style.display = 'block';
+        addClienteBtn.style.display = 'flex';
+        manageBtn.style.display = 'flex';
+        filterAndRenderClientes();
+      }
+   
+      // Desativa o modo admin
+      function disableAdminMode() {
+        isAdmin = false;
+        authStatus.textContent = '';
+        authSection.classList.remove('admin');
+        logoutBtn.style.display = 'none';
+        loginBtn.style.display = 'block';
+        downloadBackupBtn.style.display = 'none';
+        addClienteBtn.style.display = 'none';
+        manageBtn.style.display = 'none';
+        filterAndRenderClientes();
+        auth.signOut();
+      }
+   
+      // Abre o modal de login
+      function openLoginModal() {
+        loginModal.style.display = 'flex';
+        setTimeout(() => {
+          loginModal.classList.add('show');
+        }, 10);
+      }
+   
+      // Verifica o login
+      async function checkLogin() {
+        const email = loginEmail.value;
+        const password = loginPassword.value;
+     
+        if (!email || !password) {
+          loginError.textContent = "Por favor, preencha todos os campos";
+          loginError.style.display = 'block';
+          return;
+        }
+     
+        try {
+          loginText.style.display = 'none';
+          loginLoading.style.display = 'inline-block';
+       
+          await auth.signInWithEmailAndPassword(email, password);
+       
+          enableAdminMode();
+          closeModal();
+        } catch (error) {
+          console.error("Erro no login:", error);
+          loginError.textContent = "Credenciais incorretas. Tente novamente.";
+          loginError.style.display = 'block';
+        } finally {
+          loginText.style.display = 'inline-block';
+          loginLoading.style.display = 'none';
+        }
+      }
+   
+      // Verifica se o usuário está logado ao carregar la página
+      function checkAuthState() {
+        auth.onAuthStateChanged(user => {
+          if (user) {
+            enableAdminMode();
+          }
+        });
+      }
+   
+      // Alterna a visibilidade do sidebar
+      function toggleSidebar() {
+        sidebar.classList.toggle('active');
+        mapContainer.classList.toggle('active');
+      }
+   
+      // Inicializa a aplicação
+      function initApp() {
+        loadTheme();
+        initMap();
+        loadClientes();
+        checkAuthState();
+        initServicos();
+        initCategorias();
+     
+        searchInput.addEventListener('input', filterAndRenderClientes);
+     
+        toggleCategoriesBtn.addEventListener('click', function() {
+          categoriesContainer.classList.toggle('show');
+          this.innerHTML = categoriesContainer.classList.contains('show') ?
+            '<i class="fas fa-tags"></i> Ocultar Categorias' :
+            '<i class="fas fa-tags"></i> Mostrar Categorias';
+        });
+     
+        document.querySelector('.categories').addEventListener('click', function(e) {
+          const btn = e.target.closest('.category-btn');
+          if (btn) {
+            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentCategory = btn.dataset.category;
+            filterAndRenderClientes();
+          }
+        });
+     
+        loginBtn.addEventListener('click', openLoginModal);
+        logoutBtn.addEventListener('click', disableAdminMode);
+        downloadBackupBtn.addEventListener('click', downloadBackup);
+        darkModeToggle.addEventListener('click', toggleDarkMode);
+     
+        addClienteBtn.addEventListener('click', openAddClienteModal);
+        manageBtn.addEventListener('click', openManageModal);
+     
+        closeButtons.forEach(btn => {
+          btn.addEventListener('click', closeModal);
+        });
+     
+        document.querySelector('#manage-modal .close-btn').addEventListener('click', closeManageModal);
+        closeManageBtn.addEventListener('click', closeManageModal);
+     
+        saveClienteBtn.addEventListener('click', saveCliente);
+        deleteClienteBtn.addEventListener('click', deleteCliente);
+     
+        toggleSidebarBtn.addEventListener('click', toggleSidebar);
+     
+        clienteForm.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter' && clienteModal.style.display === 'flex') {
+            e.preventDefault();
+            saveCliente();
+          }
+        });
+     
+        loginForm.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter' && loginModal.style.display === 'flex') {
+            e.preventDefault();
+            checkLogin();
+          }
+        });
+     
+        // Event listeners para gerenciamento global
+        addServicoGlobalBtn.addEventListener('click', addServicoGlobal);
+        novoServicoGlobalInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            addServicoGlobal();
+          }
+        });
+        addCategoriaGlobalBtn.addEventListener('click', addCategoriaGlobal);
+        novaCategoriaInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            addCategoriaGlobal();
+          }
+        });
+        servicesTab.addEventListener('click', function() {
+          servicesSection.style.display = 'block';
+          categoriesSection.style.display = 'none';
+          servicesTab.className = 'btn btn-primary';
+          categoriesTab.className = 'btn btn-secondary';
+        });
+        categoriesTab.addEventListener('click', function() {
+          servicesSection.style.display = 'none';
+          categoriesSection.style.display = 'block';
+          servicesTab.className = 'btn btn-secondary';
+          categoriesTab.className = 'btn btn-primary';
+        });
+     
+        window.app = {
+          editCliente: openEditClienteModal
+        };
+      }
+   
+      initApp();
+    });
+  </script>
+</body>
+</html>
