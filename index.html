@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>drew.run</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+html,body{width:100%;height:100%;overflow:hidden;background:#f0f4ff;touch-action:none;}
+canvas{display:block;position:fixed;top:0;left:0;touch-action:none;}
+
+#ui{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:14px 18px;pointer-events:none;z-index:10;font-family:'Rajdhani',sans-serif;}
+.hpwrap{display:flex;flex-direction:column;gap:5px;}
+.lbl{font-size:10px;letter-spacing:3px;color:#7a8aaa;font-family:'Share Tech Mono',monospace;}
+.barbg{width:130px;height:7px;background:#dde3f5;border:1px solid #b0bde0;border-radius:3px;overflow:hidden;}
+#hpfill{height:100%;background:linear-gradient(90deg,#1a5aff,#2563eb);border-radius:3px;transition:width .15s;}
+#scorenum{font-size:26px;font-weight:700;color:#1a2040;text-align:right;font-family:'Rajdhani',sans-serif;letter-spacing:1px;}
+#wavenum{font-size:10px;letter-spacing:3px;color:#7a8aaa;text-align:right;margin-top:1px;font-family:'Share Tech Mono',monospace;}
+#nick-hud{font-size:10px;letter-spacing:2px;color:#2563eb;text-align:right;margin-top:1px;font-family:'Share Tech Mono',monospace;opacity:.7;}
+
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f0f4ff;z-index:50;padding:28px;font-family:'Rajdhani',sans-serif;overflow-y:auto;}
+.screen.hide{display:none;}
+
+.brand-wrap{display:flex;align-items:baseline;}
+.brand-tek{font-size:52px;font-weight:700;color:#1a2040;letter-spacing:-1px;line-height:1;}
+.brand-braz{font-size:52px;font-weight:700;color:#2563eb;letter-spacing:-1px;line-height:1;}
+.game-tag{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:6px;color:#8a9abf;margin-top:5px;text-align:center;}
+.div{width:40px;height:2px;background:#2563eb;margin:20px 0;border-radius:2px;}
+
+.nick-label{font-size:11px;letter-spacing:4px;color:#7a8aaa;font-family:'Share Tech Mono',monospace;margin-bottom:8px;text-align:center;}
+.nick-input{background:#fff;border:2px solid #b0c8f5;border-radius:6px;padding:12px 18px;font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:#1a2040;text-align:center;width:220px;outline:none;letter-spacing:2px;}
+.nick-input:focus{border-color:#2563eb;}
+.nick-input::placeholder{color:#b0bde0;font-weight:500;font-size:16px;letter-spacing:1px;}
+
+.instruct{text-align:center;color:#5a6a8a;font-size:14px;line-height:2.2;font-weight:500;margin-top:4px;}
+.instruct b{color:#2563eb;}
+.wandrew-tag{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:4px;color:#aabbd0;margin-top:16px;}
+
+.btn{padding:14px 40px;background:#2563eb;border:none;color:#fff;font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;letter-spacing:5px;cursor:pointer;border-radius:4px;touch-action:manipulation;margin-top:12px;transition:transform 0.1s, background 0.1s;}
+.btn:active{background:#1a4fc8;transform:scale(.97);}
+.btn-outline{background:transparent;border:2px solid #2563eb;color:#2563eb;}
+.btn-outline:active{background:#eff6ff;}
+.btn-ghost{background:transparent;border:2px solid #c0cce8;color:#8a9abf;font-size:13px;letter-spacing:3px;padding:10px 28px;}
+.btn-ghost:active{background:#f0f4ff;}
+
+.rank-title{font-size:13px;letter-spacing:5px;color:#7a8aaa;font-family:'Share Tech Mono',monospace;margin-bottom:12px;text-align:center;}
+.rank-table{width:100%;max-width:320px;border-collapse:collapse;}
+.rank-table td{padding:7px 10px;font-size:15px;font-weight:600;color:#1a2040;border-bottom:1px solid #e0e8f8;}
+.rank-table .pos{width:28px;font-family:'Share Tech Mono',monospace;font-size:12px;color:#7a8aaa;}
+.rank-table .pts{text-align:right;color:#2563eb;font-family:'Share Tech Mono',monospace;font-size:13px;}
+.rank-table .wave-col{text-align:right;color:#aabbd0;font-family:'Share Tech Mono',monospace;font-size:11px;}
+.rank-gold td{background:#fffbeb;}
+.rank-gold .pos{color:#d97706;}
+.rank-me td{background:#eff6ff;}
+.rank-empty{text-align:center;color:#b0bde0;font-size:13px;padding:20px 0;font-family:'Share Tech Mono',monospace;}
+.rank-loading{text-align:center;color:#b0bde0;font-size:11px;padding:16px 0;font-family:'Share Tech Mono',monospace;letter-spacing:2px;}
+
+.dtitle{font-size:36px;font-weight:700;color:#1a2040;letter-spacing:3px;}
+.dscore{font-size:52px;font-weight:700;color:#2563eb;margin:6px 0;letter-spacing:2px;}
+.dsub{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:4px;color:#8a9abf;}
+.dwave{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:2px;color:#aabbd0;margin-top:6px;}
+.dbrand{font-size:13px;color:#b0c0d8;margin-top:14px;font-weight:500;}
+.dbrand span{color:#2563eb;}
+.new-record{font-family:'Share Tech Mono',monospace;font-size:11px;color:#d97706;letter-spacing:3px;margin-top:8px;animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+#dashbtn{position:fixed;bottom:36px;right:32px;width:76px;height:76px;border-radius:50%;border:2px solid #2563eb;background:rgba(240,244,255,.92);color:#2563eb;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;display:none;align-items:center;justify-content:center;flex-direction:column;gap:2px;z-index:20;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 12px rgba(37,99,235,.2);}
+#dashbtn.off{border-color:#c0cce8;color:#c0cce8;box-shadow:none;}
+
+.fb-status{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;padding:3px 8px;border-radius:3px;margin-top:6px;text-align:center;}
+.fb-ok{color:#16a34a;background:#f0fdf4;}
+.fb-err{color:#dc2626;background:#fef2f2;}
+.fb-warning{color:#d97706;background:#fffbeb;}
+
+/* Mobile improvements */
+@media (max-width: 600px) {
+  .btn { padding: 12px 30px; font-size: 14px; }
+  .brand-tek, .brand-braz { font-size: 42px; }
+  .rank-table td { padding: 5px 8px; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="ui">
+  <div class="hpwrap">
+    <div class="lbl">ENERGIA</div>
+    <div class="barbg"><div id="hpfill"></div></div>
+  </div>
+  <div>
+    <div id="scorenum">0</div>
+    <div id="wavenum">FASE 1</div>
+    <div id="nick-hud"></div>
+  </div>
+</div>
+
+<button id="dashbtn" aria-label="Dash"><span style="font-size:22px">⚡</span>DASH</button>
+
+<!-- NICKNAME SCREEN -->
+<div id="nickscreen" class="screen">
+  <div class="brand-wrap"><span class="brand-tek">drew</span><span class="brand-braz">.run</span></div>
+  <div class="game-tag">ARCADE · SURVIVAL</div>
+  <div class="div"></div>
+  <div class="nick-label">SEU NICKNAME</div>
+  <input class="nick-input" id="nickinput" type="text" maxlength="12" placeholder="ex: João, Dev01..." autocomplete="off" autocorrect="off" spellcheck="false">
+  <div class="instruct" style="margin-top:14px;font-size:13px;">
+    Seu nome vai aparecer no<br><b>ranking global</b> de jogadores.
+  </div>
+  <button class="btn" id="nickbtn">ENTRAR</button>
+  <div id="fb-status-nick" class="fb-status" style="display:none;"></div>
+  <div class="wandrew-tag">drew.run</div>
+</div>
+
+<!-- TITLE SCREEN -->
+<div id="titlescreen" class="screen hide">
+  <div class="brand-wrap"><span class="brand-tek">drew</span><span class="brand-braz">.run</span></div>
+  <div class="game-tag">ARCADE · SURVIVAL</div>
+  <div class="div"></div>
+
+  <div class="rank-title">🏆 RANKING GLOBAL</div>
+  <table class="rank-table" id="rank-title-table">
+    <tr><td colspan="4" class="rank-loading">CONECTANDO...</td></tr>
+  </table>
+
+  <div style="display:flex;flex-direction:column;align-items:center;width:100%;gap:0;">
+    <button class="btn" id="startbtn" style="margin-top:20px;">JOGAR</button>
+    <button class="btn btn-outline" id="title-rankbtn">🏆 RANKING COMPLETO</button>
+    <button class="btn btn-ghost" id="changenickbtn">TROCAR NICK</button>
+  </div>
+  <div class="wandrew-tag" style="margin-top:14px;">drew.run</div>
+</div>
+
+<!-- DEATH SCREEN -->
+<div id="deathscreen" class="screen hide">
+  <div class="dtitle">GAME OVER</div>
+  <div class="dscore" id="finalscore">0</div>
+  <div class="dsub">BYTES COLETADOS</div>
+  <div class="dwave" id="finalwave"></div>
+  <div id="newrecord" class="new-record hide">★ NOVO RECORDE PESSOAL ★</div>
+
+  <div class="div" style="margin:16px 0 12px;"></div>
+  <div class="rank-title">🏆 RANKING GLOBAL</div>
+  <table class="rank-table" id="rank-death-table">
+    <tr><td colspan="4" class="rank-loading">SALVANDO...</td></tr>
+  </table>
+
+  <div class="dbrand" style="margin-top:10px;">by <span>Wandrew</span> · drew.run</div>
+  <div style="display:flex;flex-direction:column;align-items:center;width:100%;gap:0;">
+    <button class="btn" id="restartbtn">JOGAR NOVAMENTE</button>
+    <button class="btn btn-outline" id="rankbtn">🏆 RANKING COMPLETO</button>
+  </div>
+</div>
+
+<!-- FULL RANKING SCREEN -->
+<div id="rankscreen" class="screen hide">
+  <div class="brand-wrap"><span class="brand-tek">drew</span><span class="brand-braz">.run</span></div>
+  <div class="game-tag" style="margin-bottom:16px;">RANKING GLOBAL</div>
+  <div class="rank-title">🏆 TOP JOGADORES</div>
+  <table class="rank-table" id="rank-full-table" style="max-width:340px;">
+    <tr><td colspan="4" class="rank-loading">CARREGANDO...</td></tr>
+  </table>
+  <button class="btn" id="backbtn" style="margin-top:20px;">VOLTAR</button>
+  <div class="wandrew-tag" style="margin-top:12px;">drew.run</div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getDatabase, ref, push, onValue, query, orderByChild, limitToLast, get, set } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+// ─── FIREBASE CONFIG (CORRIGIDA) ──────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyD7CFqBoQP-AE8JgukD6VPA9Klri8gmV80",
+  authDomain: "wandrewclientes.firebaseapp.com",
+  databaseURL: "https://wandrewclientes-default-rtdb.firebaseio.com", // ✅ ADICIONADA
+  projectId: "wandrewclientes",
+  storageBucket: "wandrewclientes.firebasestorage.app",
+  messagingSenderId: "750131581525",
+  appId: "1:750131581525:web:54cc492b938c8baa753adc",
+  measurementId: "G-K8EHL2Q51H"
+};
+
+// Inicializar Firebase com verificação de erro
+let db;
+let rankRef;
+let cachedRanking = [];
+let playerNick = localStorage.getItem('drewrun_nick') || '';
+
+try {
+  const app = initializeApp(firebaseConfig);
+  db = getDatabase(app);
+  rankRef = ref(db, 'drewrun_ranking');
+  console.log('✅ Firebase inicializado com sucesso!');
+} catch (error) {
+  console.error('❌ Erro ao inicializar Firebase:', error);
+  alert('Erro ao conectar ao sistema de ranking. O jogo funcionará sem salvar pontuações.');
+}
+
+const MAX_ENTRIES = 20;
+
+function saveNick(n){ playerNick = n; localStorage.setItem('drewrun_nick', n); }
+
+// ─── TESTAR CONEXÃO FIREBASE ───────────────────────────────────────────
+async function testFirebaseConnection() {
+  if (!db || !rankRef) {
+    showFbError('Firebase não inicializado. Ranking offline.', 'warning');
+    return false;
+  }
+  
+  try {
+    const testRef = ref(db, 'drewrun_ranking/connection_test');
+    await set(testRef, { timestamp: Date.now(), test: true });
+    console.log('✅ Firebase conectado e funcionando!');
+    showFbError('✅ Ranking online!', 'ok');
+    setTimeout(() => {
+      const fbEl = document.getElementById('fb-status-nick');
+      if (fbEl) fbEl.style.display = 'none';
+    }, 6000);
+    return true;
+  } catch (error) {
+    console.error('❌ Erro de conexão Firebase:', error);
+    showFbError(`⚠️ ${error.code || error.message}`, 'warning');
+    return false;
+  }
+}
+
+// ─── RANKING LISTENER (COM VERIFICAÇÃO) ───────────────────────────────────
+if (rankRef) {
+  onValue(
+    query(rankRef, orderByChild('score'), limitToLast(MAX_ENTRIES)),
+    (snap) => {
+      const entries = [];
+      snap.forEach(child => {
+        const val = child.val();
+        if (val && val.nick && typeof val.score === 'number') {
+          entries.push(val);
+        }
+      });
+      entries.sort((a,b) => b.score - a.score);
+      cachedRanking = entries;
+      refreshVisibleTables();
+      console.log(`🏆 Ranking atualizado: ${entries.length} jogadores`);
+    },
+    (err) => {
+      console.error('Firebase onValue error:', err);
+      showFbError('Erro ao conectar ao ranking: ' + err.message, 'err');
+    }
+  );
+} else {
+  console.warn('Ranking não disponível');
+}
+
+function refreshVisibleTables(){
+  if(!document.getElementById('deathscreen').classList.contains('hide'))
+    renderRankTable('rank-death-table', cachedRanking, playerNick, 8);
+  if(!document.getElementById('titlescreen').classList.contains('hide'))
+    renderRankTable('rank-title-table', cachedRanking, playerNick, 8);
+  if(!document.getElementById('rankscreen').classList.contains('hide'))
+    renderRankTable('rank-full-table', cachedRanking, playerNick, MAX_ENTRIES);
+}
+
+function showFbError(msg, type = 'err') {
+  if (type === 'ok') console.log('🔥', msg);
+  else console.warn('🔥', msg);
+  const el = document.getElementById('fb-status-nick');
+  if(el){ 
+    el.textContent = msg; 
+    el.className = `fb-status fb-${type === 'ok' ? 'ok' : (type === 'warning' ? 'warning' : 'err')}`;
+    el.style.display = 'block';
+    setTimeout(() => {
+      if (el.textContent === msg) el.style.display = 'none';
+    }, 8000);
+  }
+}
+
+// ─── SUBMIT SCORE (MELHORADO) ───────────────────────────────────────────
+async function submitScore(nick, score, wave) {
+  if (!db || !rankRef) {
+    console.warn('Firebase não disponível, score não salvo');
+    return { isRecord: false, error: 'Firebase offline' };
+  }
+  
+  try {
+    console.log('📤 Salvando pontuação:', { nick, score, wave });
+    
+    // Buscar se já existe pontuação para este nick
+    const snap = await get(query(rankRef, orderByChild('nick')));
+    let existingKey = null, existingScore = -1;
+    
+    snap.forEach(child => {
+      const d = child.val();
+      if(d && d.nick && d.nick.toLowerCase() === nick.toLowerCase()){
+        existingKey = child.key;
+        existingScore = d.score || 0;
+      }
+    });
+
+    let isRecord = false;
+    if(existingKey){
+      if(score > existingScore){
+        await set(ref(db, `drewrun_ranking/${existingKey}`), { 
+          nick, 
+          score, 
+          wave, 
+          date: Date.now(),
+          lastUpdate: new Date().toISOString()
+        });
+        console.log('✅ Score atualizado!');
+        isRecord = true;
+      } else {
+        console.log('⏭️ Score não superou o recorde pessoal');
+      }
+    } else {
+      await push(rankRef, { 
+        nick, 
+        score, 
+        wave, 
+        date: Date.now(),
+        createdAt: new Date().toISOString()
+      });
+      console.log('✅ Novo score criado!');
+      isRecord = true;
+    }
+
+    // Limpar excedentes (manter apenas top MAX_ENTRIES)
+    const allSnap = await get(query(rankRef, orderByChild('score')));
+    const all = [];
+    allSnap.forEach(child => all.push({ key: child.key, ...child.val() }));
+    all.sort((a,b) => b.score - a.score);
+    if(all.length > MAX_ENTRIES){
+      for(const e of all.slice(MAX_ENTRIES)) {
+        if (e.key) await set(ref(db, `drewrun_ranking/${e.key}`), null);
+      }
+      console.log(`🗑️ Limpeza: mantidos top ${MAX_ENTRIES}`);
+    }
+    
+    return { isRecord };
+  } catch(err){
+    console.error('❌ Erro ao salvar pontuação:', err);
+    showFbError(`Erro ao salvar: ${err.message}. Verifique as regras do database.`, 'err');
+    return { isRecord: false, error: err.message };
+  }
+}
+
+// ─── RENDER TABLE (CORRIGIDA) ───────────────────────────────────────────
+function renderRankTable(tableId, entries, myNick, limit=10){
+  const tb = document.getElementById(tableId);
+  if(!tb) return;
+  if(!entries || entries.length === 0){
+    tb.innerHTML = '<tr><td colspan="4" class="rank-empty">Nenhuma pontuação ainda.<br>Seja o primeiro!</td></tr>';
+    return;
+  }
+  const medals = ['🥇','🥈','🥉'];
+  let html = '';
+  const shown = entries.slice(0, limit);
+  for(let i=0; i<shown.length; i++){
+    const e = shown[i];
+    const isMe = e.nick && e.nick.toLowerCase() === (myNick || '').toLowerCase();
+    const rowClass = i === 0 ? 'rank-gold' : (isMe ? 'rank-me' : '');
+    const pos = medals[i] || `#${i+1}`;
+    html += `<tr class="${rowClass}">
+      <td class="pos">${pos}</td>
+      <td>${e.nick}${isMe ? ' ◀' : ''}</td>
+      <td class="wave-col">F${e.wave || 1}</td>
+      <td class="pts">${e.score}</td>
+    </tr>`;
+  }
+  tb.innerHTML = html;
+}
+
+// ─── CANVAS / GAME ────────────────────────────────────────────────────────
+const cv = document.getElementById('c');
+const cx = cv.getContext('2d');
+let W, H;
+function resize(){ W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+const rnd = (a,b) => a + Math.random()*(b-a);
+const clamp = (v,a,b) => Math.max(a, Math.min(b,v));
+
+let running=false, score=0, wave=1, waveT=0, waveDur=18;
+let spawnR=1.8, spawnT=0;
+let parts=[], enemies=[], bullets=[], pickups=[];
+
+const P = { x:0,y:0,r:18,hp:100,maxHp:100,spd:185,
+  shootCd:0,shootR:.52,inv:0,
+  dashCd:0,dashMaxCd:1.8,dashing:false,dashTimer:0,
+  dashVx:0,dashVy:0,angle:0 };
+
+const JOY = { on:false,pid:-1,sx:0,sy:0,dx:0,dy:0,maxR:44 };
+
+function initGame(){
+  P.x=W/2; P.y=H/2; P.hp=P.maxHp;
+  P.shootCd=0; P.dashCd=0; P.dashing=false; P.inv=0;
+  score=0; wave=1; waveT=0; spawnR=1.8; spawnT=0; waveDur=18;
+  enemies=[]; bullets=[]; parts=[]; pickups=[];
+  JOY.on=false; JOY.dx=0; JOY.dy=0;
+  document.getElementById('nick-hud').textContent = playerNick;
+  hud();
+}
+
+function hud(){
+  document.getElementById('hpfill').style.width = Math.max(0, P.hp/P.maxHp*100)+'%';
+  document.getElementById('scorenum').textContent = score;
+  document.getElementById('wavenum').textContent = 'FASE '+wave;
+}
+
+function spark(x,y,col,n,spd,life){
+  for(let i=0;i<n;i++){
+    const a=rnd(0,Math.PI*2), s=spd*rnd(.4,1.2);
+    parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life,ml:life,r:rnd(1.5,3.5),col});
+  }
+}
+function explode(x,y){ spark(x,y,'#2563eb',8,140,.5); spark(x,y,'#7baafe',6,90,.4); }
+function dataPop(x,y){ pickups.push({x,y,r:7,life:9,vx:rnd(-40,40),vy:rnd(-40,40)}); }
+
+function spawnEnemy(){
+  const edge=Math.floor(rnd(0,4));
+  let x,y,pad=24;
+  if(edge===0){x=rnd(0,W);y=-pad;}
+  else if(edge===1){x=W+pad;y=rnd(0,H);}
+  else if(edge===2){x=rnd(0,W);y=H+pad;}
+  else{x=-pad;y=rnd(0,H);}
+  const roll=wave<3?0:Math.random();
+  let r,spd,hp,col,pts;
+  if(roll<.55){r=15;spd=70+wave*9;hp=2+wave;col='#e53e3e';pts=10;}
+  else if(roll<.82){r=10;spd=120+wave*11;hp=1;col='#d97706';pts=6;}
+  else{r=28;spd=38+wave*5;hp=5+wave*2;col='#6d28d9';pts=28;}
+  enemies.push({x,y,r,spd,hp,maxHp:hp,col,pts,pt:rnd(0,Math.PI*2)});
+}
+
+function shoot(tx,ty){
+  const dx=tx-P.x, dy=ty-P.y, l=Math.hypot(dx,dy)||1, spd=430;
+  bullets.push({x:P.x,y:P.y,vx:dx/l*spd,vy:dy/l*spd,r:5,life:1.1});
+}
+function nearest(){
+  let best=null, bd=Infinity;
+  for(const e of enemies){ const d=Math.hypot(e.x-P.x,e.y-P.y); if(d<bd){bd=d;best=e;} }
+  return best;
+}
+
+let last=0;
+function loop(ts){
+  if(!running) return;
+  const dt=Math.min((ts-last)/1000,.05); last=ts;
+
+  waveT+=dt;
+  if(waveT>waveDur){
+    wave++; waveT=0;
+    spawnR=Math.max(.32,spawnR-.17);
+    waveDur=Math.min(waveDur+3,40);
+    document.getElementById('wavenum').textContent='FASE '+wave;
+    spark(W/2,H/2,'#2563eb',28,200,1);
+  }
+  spawnT-=dt;
+  if(spawnT<=0){
+    const n=wave<3?1:(Math.random()<.3?2:1);
+    for(let i=0;i<n;i++) spawnEnemy();
+    spawnT=spawnR;
+  }
+
+  let jx=0,jy=0;
+  if(JOY.on){ const l=Math.hypot(JOY.dx,JOY.dy); if(l>8){jx=JOY.dx/l;jy=JOY.dy/l;} }
+
+  if(P.dashing){
+    P.dashTimer-=dt;
+    if(P.dashTimer<=0) P.dashing=false;
+    else{ P.x+=P.dashVx*dt; P.y+=P.dashVy*dt; }
+  } else {
+    P.x+=jx*P.spd*dt; P.y+=jy*P.spd*dt;
+    if(jx||jy) P.angle=Math.atan2(jy,jx);
+  }
+  P.x=clamp(P.x,P.r,W-P.r); P.y=clamp(P.y,P.r,H-P.r);
+  P.inv=Math.max(0,P.inv-dt);
+  if(P.dashCd>0){ P.dashCd-=dt; if(P.dashCd<=0){ P.dashCd=0; document.getElementById('dashbtn').className=''; } }
+
+  P.shootCd-=dt;
+  if(P.shootCd<=0){ const t=nearest(); if(t){shoot(t.x,t.y);P.shootCd=P.shootR;} }
+
+  for(let i=enemies.length-1;i>=0;i--){
+    const e=enemies[i]; e.pt+=dt*2.2;
+    const dx=P.x-e.x, dy=P.y-e.y, l=Math.hypot(dx,dy)||1;
+    e.x+=dx/l*e.spd*dt; e.y+=dy/l*e.spd*dt;
+    if(!P.dashing&&P.inv<=0&&l<e.r+P.r){
+      P.hp-=12; P.inv=.85;
+      spark(P.x,P.y,'#e53e3e',8,130,.5);
+      hud();
+      if(P.hp<=0){ endGame(); return; }
+    }
+  }
+
+  for(let i=bullets.length-1;i>=0;i--){
+    const b=bullets[i];
+    b.x+=b.vx*dt; b.y+=b.vy*dt; b.life-=dt;
+    if(b.life<=0||b.x<-10||b.x>W+10||b.y<-10||b.y>H+10){ bullets.splice(i,1); continue; }
+    for(let j=enemies.length-1;j>=0;j--){
+      const e=enemies[j];
+      if(Math.hypot(b.x-e.x,b.y-e.y)<b.r+e.r){
+        bullets.splice(i,1); e.hp--;
+        spark(e.x,e.y,'#7baafe',4,80,.3);
+        if(e.hp<=0){ explode(e.x,e.y); dataPop(e.x,e.y); score+=e.pts; document.getElementById('scorenum').textContent=score; enemies.splice(j,1); }
+        break;
+      }
+    }
+  }
+
+  for(let i=pickups.length-1;i>=0;i--){
+    const pk=pickups[i];
+    const dx=P.x-pk.x, dy=P.y-pk.y, d=Math.hypot(dx,dy);
+    if(d<90){ pk.vx+=dx/d*220*dt; pk.vy+=dy/d*220*dt; }
+    pk.x+=pk.vx*dt; pk.y+=pk.vy*dt; pk.vx*=.91; pk.vy*=.91; pk.life-=dt;
+    if(d<pk.r+P.r||pk.life<=0){
+      if(d<pk.r+P.r){ P.hp=Math.min(P.maxHp,P.hp+8); hud(); spark(P.x,P.y,'#2563eb',6,70,.45); }
+      pickups.splice(i,1);
+    }
+  }
+
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i];
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=.87; p.vy*=.87; p.life-=dt;
+    if(p.life<=0) parts.splice(i,1);
+  }
+
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function draw(){
+  cx.fillStyle='#f0f4ff'; cx.fillRect(0,0,W,H);
+  cx.fillStyle='rgba(37,99,235,.1)';
+  const gs=36;
+  for(let x=gs;x<W;x+=gs) for(let y=gs;y<H;y+=gs){ cx.beginPath(); cx.arc(x,y,1.2,0,Math.PI*2); cx.fill(); }
+  cx.strokeStyle='rgba(37,99,235,.05)'; cx.lineWidth=1;
+  for(let x=0;x<W;x+=gs*3){ cx.beginPath(); cx.moveTo(x,0); cx.lineTo(x,H); cx.stroke(); }
+  for(let y=0;y<H;y+=gs*3){ cx.beginPath(); cx.moveTo(0,y); cx.lineTo(W,y); cx.stroke(); }
+
+  for(const p of parts){
+    cx.globalAlpha=p.life/p.ml;
+    cx.fillStyle=p.col; cx.beginPath(); cx.arc(p.x,p.y,p.r*(p.life/p.ml),0,Math.PI*2); cx.fill();
+  }
+  cx.globalAlpha=1;
+
+  const now=Date.now();
+  for(const pk of pickups){
+    const a=Math.min(pk.life,1), pulse=1+.22*Math.sin(now*.01);
+    cx.globalAlpha=a;
+    cx.shadowColor='#2563eb'; cx.shadowBlur=12;
+    const s=pk.r*pulse*2;
+    cx.fillStyle='#dbeafe'; cx.fillRect(pk.x-s/2,pk.y-s/2,s,s);
+    cx.strokeStyle='#2563eb'; cx.lineWidth=1.5; cx.strokeRect(pk.x-s/2,pk.y-s/2,s,s);
+    cx.fillStyle='#1d4ed8'; cx.font=`bold ${Math.round(s*.7)}px Rajdhani,sans-serif`;
+    cx.textAlign='center'; cx.textBaseline='middle'; cx.fillText('D',pk.x,pk.y+1);
+    cx.shadowBlur=0; cx.globalAlpha=1;
+  }
+
+  for(const e of enemies){
+    const pulse=1+.07*Math.sin(e.pt);
+    cx.shadowColor=e.col; cx.shadowBlur=14;
+    cx.fillStyle=e.col; cx.globalAlpha=.15;
+    cx.beginPath(); cx.arc(e.x,e.y,e.r*pulse+5,0,Math.PI*2); cx.fill();
+    cx.globalAlpha=1;
+    cx.fillStyle=e.col;
+    cx.beginPath(); cx.arc(e.x,e.y,e.r*pulse,0,Math.PI*2); cx.fill();
+    cx.strokeStyle='rgba(255,255,255,.6)'; cx.lineWidth=2;
+    const s=e.r*.5;
+    cx.beginPath(); cx.moveTo(e.x-s,e.y-s); cx.lineTo(e.x+s,e.y+s);
+    cx.moveTo(e.x+s,e.y-s); cx.lineTo(e.x-s,e.y+s); cx.stroke();
+    cx.shadowBlur=0;
+    if(e.maxHp>1){
+      const bw=e.r*2.4;
+      cx.fillStyle='#dde3f5'; cx.fillRect(e.x-bw/2,e.y-e.r-9,bw,3);
+      cx.fillStyle=e.col; cx.fillRect(e.x-bw/2,e.y-e.r-9,bw*(e.hp/e.maxHp),3);
+    }
+  }
+
+  for(const b of bullets){
+    cx.globalAlpha=b.life/1.1;
+    cx.shadowColor='#2563eb'; cx.shadowBlur=14;
+    cx.fillStyle='#2563eb'; cx.beginPath(); cx.arc(b.x,b.y,b.r,0,Math.PI*2); cx.fill();
+    cx.fillStyle='#93c5fd'; cx.beginPath(); cx.arc(b.x-1.5,b.y-1.5,b.r*.4,0,Math.PI*2); cx.fill();
+    cx.shadowBlur=0; cx.globalAlpha=1;
+  }
+
+  const flash=P.inv>0&&Math.sin(P.inv*28)>0;
+  if(!flash){
+    cx.save(); cx.translate(P.x,P.y);
+    cx.shadowColor=P.dashing?'#7baafe':'#2563eb'; cx.shadowBlur=P.dashing?28:16;
+    cx.fillStyle=P.dashing?'#93c5fd':'#2563eb';
+    cx.beginPath();
+    for(let i=0;i<6;i++){
+      const a=Math.PI/6+i*Math.PI/3;
+      i===0?cx.moveTo(Math.cos(a)*P.r,Math.sin(a)*P.r):cx.lineTo(Math.cos(a)*P.r,Math.sin(a)*P.r);
+    }
+    cx.closePath(); cx.fill();
+    cx.fillStyle='#fff'; cx.font=`bold ${Math.round(P.r*.9)}px Rajdhani,sans-serif`;
+    cx.textAlign='center'; cx.textBaseline='middle'; cx.fillText('W',0,1);
+    cx.shadowBlur=0; cx.restore();
+  }
+
+  if(JOY.on){
+    cx.globalAlpha=.1;
+    cx.strokeStyle='#2563eb'; cx.lineWidth=1.5;
+    cx.beginPath(); cx.arc(JOY.sx,JOY.sy,JOY.maxR,0,Math.PI*2); cx.stroke();
+    cx.globalAlpha=.3;
+    const l=Math.hypot(JOY.dx,JOY.dy), cl=Math.min(l,JOY.maxR);
+    const nx=l?JOY.dx/l:0, ny=l?JOY.dy/l:0;
+    cx.fillStyle='#2563eb';
+    cx.beginPath(); cx.arc(JOY.sx+nx*cl,JOY.sy+ny*cl,18,0,Math.PI*2); cx.fill();
+    cx.globalAlpha=1;
+  }
+
+  cx.globalAlpha=.15;
+  cx.fillStyle='#2563eb';
+  cx.font='500 11px Rajdhani,sans-serif';
+  cx.textAlign='right'; cx.textBaseline='bottom';
+  cx.fillText('drew.run',W-14,H-12);
+  cx.globalAlpha=1;
+}
+
+// ─── CONTROLES ──────────────────────────────────────────────────────────────
+const LEFT=()=>W*.58;
+cv.addEventListener('pointerdown',e=>{ e.preventDefault(); cv.setPointerCapture(e.pointerId); if(e.clientX<LEFT()&&!JOY.on){JOY.on=true;JOY.pid=e.pointerId;JOY.sx=e.clientX;JOY.sy=e.clientY;JOY.dx=0;JOY.dy=0;} },{passive:false});
+cv.addEventListener('pointermove',e=>{ e.preventDefault(); if(e.pointerId===JOY.pid){JOY.dx=e.clientX-JOY.sx;JOY.dy=e.clientY-JOY.sy;} },{passive:false});
+cv.addEventListener('pointerup',e=>{ e.preventDefault(); if(e.pointerId===JOY.pid){JOY.on=false;JOY.pid=-1;JOY.dx=0;JOY.dy=0;} },{passive:false});
+cv.addEventListener('pointercancel',e=>{ if(e.pointerId===JOY.pid){JOY.on=false;JOY.pid=-1;JOY.dx=0;JOY.dy=0;} });
+
+const dashEl=document.getElementById('dashbtn');
+dashEl.addEventListener('pointerdown',e=>{
+  e.preventDefault(); e.stopPropagation();
+  if(P.dashCd<=0&&!P.dashing){
+    const l=Math.hypot(JOY.dx,JOY.dy);
+    const jx=l>8?JOY.dx/l:Math.cos(P.angle);
+    const jy=l>8?JOY.dy/l:Math.sin(P.angle);
+    P.dashing=true; P.dashTimer=.18; P.dashVx=jx*820; P.dashVy=jy*820;
+    P.dashCd=P.dashMaxCd; P.inv=.18;
+    dashEl.className='off';
+    spark(P.x,P.y,'#93c5fd',10,160,.3);
+  }
+},{passive:false});
+
+// ─── FLOW ───────────────────────────────────────────────────
+function showScreen(id){
+  ['nickscreen','titlescreen','deathscreen','rankscreen'].forEach(s=>{
+    document.getElementById(s).classList.toggle('hide', s!==id);
+  });
+}
+
+function goToTitle(){
+  showScreen('titlescreen');
+  renderRankTable('rank-title-table', cachedRanking, playerNick, 8);
+}
+
+function startGame(){
+  ['nickscreen','titlescreen','deathscreen','rankscreen'].forEach(s=>document.getElementById(s).classList.add('hide'));
+  dashEl.style.display='flex';
+  initGame(); running=true; last=performance.now();
+  requestAnimationFrame(loop);
+}
+
+async function endGame(){
+  running=false; dashEl.style.display='none';
+  document.getElementById('finalscore').textContent=score;
+  document.getElementById('finalwave').textContent='CHEGOU NA FASE '+wave;
+  document.getElementById('rank-death-table').innerHTML='<tr><td colspan="4" class="rank-loading">SALVANDO...</td></tr>';
+  showScreen('deathscreen');
+
+  const { isRecord } = await submitScore(playerNick, score, wave);
+  document.getElementById('newrecord').classList.toggle('hide', !isRecord);
+  renderRankTable('rank-death-table', cachedRanking, playerNick, 8);
+}
+
+// ─── NICKNAME ───────────────────────────────────────────────
+const nickInput = document.getElementById('nickinput');
+function validateNick(n){ return n.trim().length >= 2; }
+
+document.getElementById('nickbtn').addEventListener('click', async () => {
+  const n = nickInput.value.trim();
+  if(!validateNick(n)){ nickInput.style.borderColor='#e53e3e'; return; }
+  nickInput.style.borderColor='#b0c8f5';
+  saveNick(n);
+  await testFirebaseConnection();
+  goToTitle();
+});
+
+nickInput.addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('nickbtn').click(); });
+
+document.getElementById('startbtn').addEventListener('click', startGame);
+document.getElementById('restartbtn').addEventListener('click', startGame);
+
+document.getElementById('changenickbtn').addEventListener('click', ()=>{
+  nickInput.value = playerNick;
+  showScreen('nickscreen');
+});
+
+document.getElementById('title-rankbtn').addEventListener('click', ()=>{
+  showScreen('rankscreen');
+  renderRankTable('rank-full-table', cachedRanking, playerNick, MAX_ENTRIES);
+});
+
+document.getElementById('rankbtn').addEventListener('click', ()=>{
+  showScreen('rankscreen');
+  renderRankTable('rank-full-table', cachedRanking, playerNick, MAX_ENTRIES);
+});
+
+document.getElementById('backbtn').addEventListener('click', ()=> goToTitle());
+
+// ─── INIT ────────────────────────────────────────────────────
+if(playerNick && playerNick.length >= 2){
+  testFirebaseConnection();
+  goToTitle();
+} else {
+  showScreen('nickscreen');
+}
+</script>
+</body>
+</html>
